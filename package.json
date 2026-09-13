@@ -1,0 +1,15 @@
+{
+  "name": "freshmart",
+  "version": "1.0.0",
+  "private": true,
+  "description": "FreshMart full-stack grocery e-commerce platform (React client + Node/Express/MongoDB server)",
+  "scripts": {
+    "install:all": "npm --prefix client install && npm --prefix server install",
+    "dev:client": "npm --prefix client run dev",
+    "dev:server": "npm --prefix server run dev",
+    "build:client": "npm --prefix client run build",
+    "start:server": "npm --prefix server start",
+    "seed": "npm --prefix server run seed",
+    "seed:fresh": "npm --prefix server run seed:fresh"
+  }
+}

@@ -1,0 +1,17 @@
+logs
+*.log
+npm-debug.log*
+
+node_modules
+dist
+dist-ssr
+.vite
+*.local
+
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+
+.env
+.env.local
