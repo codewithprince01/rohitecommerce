@@ -138,26 +138,34 @@ export default function Header() {
           <div className="lg:hidden">
           <div className="max-w-md mx-auto px-4">
             {/* Top bar */}
-            <div className="flex items-center justify-between py-3">
+            <div className="flex items-center justify-between py-2.5 gap-2">
+              <button onClick={() => navigate('home')} className="flex items-center flex-shrink-0" aria-label="Home">
+                <img
+                  src="/agrawal_log.png"
+                  alt="Agrawal Store"
+                  className="h-9 sm:h-10 w-auto max-w-[145px] sm:max-w-[175px] object-contain"
+                />
+              </button>
+
               <button
                 onClick={() => setLocationModalOpen(true)}
-                className="flex items-center gap-1.5 min-w-0"
+                className="flex items-center gap-1.5 min-w-0 flex-1 justify-end px-1"
               >
-                <div className="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center flex-shrink-0">
-                  <MapPin size={16} className="text-primary-600" />
+                <div className="w-7 h-7 rounded-full bg-primary-100 flex items-center justify-center flex-shrink-0">
+                  <MapPin size={14} className="text-primary-600" />
                 </div>
                 <div className="min-w-0 text-left">
                   <div className="flex items-center gap-0.5">
-                    <span className="text-[10px] text-neutral-500 font-medium">Delivering to</span>
-                    <ChevronDown size={12} className="text-neutral-400" />
+                    <span className="text-[10px] text-neutral-500 font-medium leading-none">Deliver to</span>
+                    <ChevronDown size={11} className="text-neutral-400" />
                   </div>
-                  <span className="text-xs font-bold text-neutral-800 block truncate max-w-[220px]">
+                  <span className="text-xs font-bold text-neutral-800 block truncate max-w-[105px] sm:max-w-[140px]">
                     {deliveryLocation.area || deliveryLocation.city}
                   </span>
                 </div>
               </button>
 
-              <div className="flex items-center">
+              <div className="flex items-center flex-shrink-0">
                 <button
                   className="relative w-9 h-9 rounded-full bg-neutral-100 hover:bg-neutral-200 flex items-center justify-center transition-colors active:scale-95"
                   onClick={() => navigate('cart')}

@@ -74,13 +74,13 @@ export default function WishlistPage() {
     };
   }, [wishlist]);
 
-  const handleMoveAllToCart = () => {
+  const handleAddAllToCart = () => {
     products.forEach((product) => {
       if (product.variants && product.variants.length > 0) {
         addToCart(product, product.variants[0]);
       }
     });
-    clearWishlist();
+    // Wishlist items are kept in wishlist as requested
     navigate('cart');
   };
 
@@ -108,11 +108,11 @@ export default function WishlistPage() {
           <div className="flex items-center gap-2 self-start sm:self-auto">
             <button
               type="button"
-              onClick={handleMoveAllToCart}
+              onClick={handleAddAllToCart}
               className="px-3 py-1.5 bg-primary-600 hover:bg-primary-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-xs transition-all active:scale-95"
             >
               <ShoppingCart size={13} />
-              <span>Move All to Cart</span>
+              <span>Add All to Cart</span>
             </button>
             <button
               type="button"
@@ -167,7 +167,6 @@ export default function WishlistPage() {
                 key={product.id}
                 product={product}
                 className="w-full"
-                removeFromWishlistOnAdd={true}
               />
             ))}
           </div>

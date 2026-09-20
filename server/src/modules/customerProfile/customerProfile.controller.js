@@ -41,21 +41,21 @@ export async function getProfile(req, res) {
         {
           customer_id: customer._id,
           label: 'Home',
-          line1: 'Flat 402, Green Meadows, Sector 45',
-          line2: 'Opposite City Center Mall',
-          city: 'Gurugram',
-          state: 'Haryana',
-          pincode: '122003',
+          line1: 'Fatehchand colony, ward no 5',
+          line2: 'Near ram mandir chauraha',
+          city: 'Sabalgarh',
+          state: 'Madhya Pradesh',
+          pincode: '476229',
           is_default: true,
         },
         {
           customer_id: customer._id,
-          label: 'Work',
-          line1: 'Tower B, 6th Floor, Cyber City',
-          line2: 'DLF Phase 2',
-          city: 'Gurugram',
-          state: 'Haryana',
-          pincode: '122002',
+          label: 'Shop',
+          line1: 'Near Ram Mandir Chauraha, Main Market',
+          line2: 'Ward No 5',
+          city: 'Sabalgarh',
+          state: 'Madhya Pradesh',
+          pincode: '476229',
           is_default: false,
         },
       ]);
@@ -267,11 +267,11 @@ export async function getOrders(req, res) {
         items,
         delivery_address: o.delivery_address || {
           label: 'Home',
-          line1: 'Flat 402, Green Meadows, Sector 45',
-          line2: 'Opposite City Center Mall',
-          city: 'Gurugram',
-          state: 'Haryana',
-          pincode: '122003',
+          line1: 'Fatehchand colony, ward no 5',
+          line2: 'Near ram mandir chauraha',
+          city: 'Sabalgarh, Morena',
+          state: 'Madhya Pradesh',
+          pincode: '476229',
         },
         rider: o.rider || pilot,
         delivery_eta: o.delivery_eta || (isLive ? '8-10 Mins' : isDelivered ? 'Delivered in 9 mins' : 'Cancelled'),
@@ -385,9 +385,10 @@ export async function reorder(req, res) {
       total,
       delivery_address: oldOrder.delivery_address || {
         label: 'Home',
-        line1: 'Flat 402, Green Meadows, Sector 45',
-        city: 'Gurugram',
-        pincode: '122003',
+        line1: 'Fatehchand colony, ward no 5, near ram mandir chauraha',
+        city: 'Sabalgarh',
+        state: 'Madhya Pradesh',
+        pincode: '476229',
       },
       placed_at: new Date(),
     });
@@ -472,7 +473,7 @@ export async function addAddress(req, res) {
       line2: line2 ? line2.trim() : null,
       landmark: landmark ? landmark.trim() : null,
       city: city.trim(),
-      state: state ? state.trim() : 'Haryana',
+      state: state ? state.trim() : 'Madhya Pradesh',
       pincode: pincode.trim(),
       delivery_instructions: Array.isArray(delivery_instructions) ? delivery_instructions : [],
       is_default: Boolean(is_default),
@@ -733,22 +734,22 @@ export async function getSupport(req, res) {
     if (!tickets || tickets.length === 0) {
       const sample = await SupportTicket.create({
         customer_id: customer._id,
-        ticket_number: 'FM-TKT-82910',
+        ticket_number: 'AG-TKT-82910',
         category: 'Delivery Query',
         subject: 'Estimated delivery slot enquiry',
-        message: 'Hi FreshMart, can I schedule my order delivery for evening slots?',
+        message: 'Hi Agrawal General & Provisional Store, can I schedule my order delivery for evening slots?',
         status: 'resolved',
         priority: 'low',
         responses: [
           {
             sender: 'customer',
-            message: 'Hi FreshMart, can I schedule my order delivery for evening slots?',
+            message: 'Hi Agrawal General & Provisional Store, can I schedule my order delivery for evening slots?',
             created_at: new Date(Date.now() - 24 * 3600 * 1000),
           },
           {
             sender: 'agent',
             message:
-              'Hello Aarav! Yes, FreshMart 10-minute instant delivery is active 24x7. You can also pick future slots at checkout.',
+              'Hello! Yes, Agrawal General & Provisional Store instant delivery is active. You can also pick future slots at checkout.',
             created_at: new Date(Date.now() - 23 * 3600 * 1000),
           },
         ],
@@ -773,14 +774,14 @@ export async function createSupportTicket(req, res) {
       return res.status(400).json({ success: false, message: 'Subject and message are required' });
     }
 
-    const ticketNumber = `FM-TKT-${Math.floor(10000 + Math.random() * 90000)}`;
+    const ticketNumber = `AG-TKT-${Math.floor(10000 + Math.random() * 90000)}`;
 
     const autoReplies = {
       'Order Issue': 'We have received your order report. Our priority packaging team is verifying it immediately.',
       'Delivery Delay': 'Delivery fleet is dispatched. Your delivery partner is reaching your location within minutes.',
       'Payment & Refund': 'Payment verification initiated. Any deduction is safely held and auto-refunded to your wallet.',
-      'Product Quality': 'FreshMart 100% Quality Guarantee: Our quality inspector has been notified for replacement/credit.',
-      'General Query': 'Thank you for reaching out! A FreshMart customer specialist is looking into your request.',
+      'Product Quality': 'Agrawal General & Provisional Store 100% Quality Guarantee: Our quality inspector has been notified for replacement/credit.',
+      'General Query': 'Thank you for reaching out! An Agrawal General & Provisional Store specialist is looking into your request.',
     };
 
     const initialAgentReply = autoReplies[category] || autoReplies['General Query'];
@@ -942,7 +943,7 @@ export async function placeOrder(req, res) {
     await OrderStatusHistory.create({
       order_id: order._id,
       status: 'pending',
-      note: 'Order placed via FreshMart Web Checkout',
+      note: 'Order placed via Agrawal General & Provisional Store Web Checkout',
     });
 
     return res.status(201).json({

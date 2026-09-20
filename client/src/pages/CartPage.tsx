@@ -26,10 +26,11 @@ import {
   ShieldCheck,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
+import { createCustomerOrder } from '../lib/profileApi';
 
 // Seller's WhatsApp destination number (with country code 91)
-const SELLER_WHATSAPP_NUMBER = '919458524697';
-const DISPLAY_PHONE_NUMBER = '+91 9458524697';
+const SELLER_WHATSAPP_NUMBER = '919285108057';
+const DISPLAY_PHONE_NUMBER = '+91 9285108057';
 
 const DELIVERY_SLOTS = [
   { id: '10-15', label: 'Instant Express (10-15 mins)', sub: 'Dark Store Dispatch', badge: 'Fastest' },
@@ -83,7 +84,6 @@ function buildWhatsAppMessage(order: {
   customerPhone: string;
   address: string;
   addressLabel: string;
-  slotLabel: string;
   cartTotal: number;
   delivery: number;
   total: number;
@@ -96,44 +96,45 @@ function buildWhatsAppMessage(order: {
   const itemsList = order.items
     .map(
       (item, idx) =>
-        `${idx + 1}️⃣ *${item.name}* (${item.quantityLabel})\n   ▫️ Qty: ${item.quantity} × ₹${item.price} = *₹${item.price * item.quantity}*`
+        `${idx + 1}. *${item.name}* (${item.quantityLabel})\n   Qty: ${item.quantity} x Rs. ${item.price} = Rs. ${item.price * item.quantity}`
     )
     .join('\n\n');
 
   return (
-    `🛍️ *NEW ORDER RECEIVED — FreshMart Express*\n` +
-    `═══════════════════════════\n` +
-    `🆔 *Order ID:* #${order.orderId}\n` +
-    `📅 *Date & Time:* ${order.dateTime}\n` +
-    `═══════════════════════════\n\n` +
-    `🛒 *ORDER ITEMS (${totalQuantity} items):*\n` +
-    `───────────────────────────\n` +
-    `${itemsList}\n` +
-    `───────────────────────────\n\n` +
-    `💰 *BILL SUMMARY:*\n` +
-    `   ▫️ Items Subtotal: ₹${order.cartTotal}\n` +
-    `   ▫️ Delivery Fee: ${order.delivery === 0 ? 'FREE (Express)' : `₹${order.delivery}`}\n` +
-    `   ▫️ *Grand Total: ₹${order.total}*\n` +
-    `   ▫️ Payment Mode: *${order.paymentMethod}*\n\n` +
-    `📍 *DELIVERY DETAILS:*\n` +
-    `   ▫️ Recipient: *${order.customerName}* (${order.customerPhone})\n` +
-    `   ▫️ Address (${order.addressLabel}): ${order.address}\n` +
-    `   ▫️ Preferred Slot: *${order.slotLabel}*\n` +
-    (order.note ? `   ▫️ Delivery Notes: _${order.note}_\n` : '') +
-    `\n═══════════════════════════\n` +
-    `⚡ Please confirm this order & assign nearest delivery pilot!`
+    `*NEW ORDER - Agrawal General & Provisional Store*\n` +
+    `Order ID: #${order.orderId}\n` +
+    `Date & Time: ${order.dateTime}\n\n` +
+    `*ORDER ITEMS (${totalQuantity} items):*\n` +
+    `${itemsList}\n\n` +
+    `*BILL SUMMARY:*\n` +
+    `- Total Amount: Rs. ${order.total}\n` +
+    `- Payment Mode: Cash on Delivery (COD)\n\n` +
+    `*DELIVERY DETAILS:*\n` +
+    `- Name: ${order.customerName} (${order.customerPhone})\n` +
+    `- Address (${order.addressLabel}): ${order.address}\n` +
+    (order.note ? `- Notes: ${order.note}\n` : '') +
+    `\nPlease confirm this order. Thank you!`
   );
 }
 
 export default function CartPage() {
   const { state, updateCartQuantity, removeFromCart, clearCart, navigate, cartTotal, cartCount } = useApp();
-  const [step, setStep] = useState<CheckoutStep>('cart');
+  const [step, setStep] = useState<CheckoutStep>(() => {
+    try {
+      const savedStep = sessionStorage.getItem('freshmart_checkout_step');
+      if (savedStep === 'payment' || savedStep === 'address') {
+        sessionStorage.removeItem('freshmart_checkout_step');
+        return savedStep;
+      }
+    } catch {}
+    return 'cart';
+  });
   const [selectedSlot, setSelectedSlot] = useState('10-15');
 
   // Address state
   const [addresses, setAddresses] = useState<AddressItem[]>([
-    { id: '1', label: 'Home', address: '12A, 3rd Floor, Koramangala 5th Block, Bengaluru - 560034' },
-    { id: '2', label: 'Office', address: '14th Main, HSR Layout, Bengaluru - 560102' },
+    { id: '1', label: 'Home', address: 'Fatehchand colony, ward no 5, near ram mandir chauraha, sabalgarh, Morena, madhya pradesh - 476229' },
+    { id: '2', label: 'Shop/Office', address: 'Main Market, Sabalgarh, Morena, Madhya Pradesh - 476229' },
   ]);
   const [selectedAddressId, setSelectedAddressId] = useState<string>('1');
   const [showAddAddress, setShowAddAddress] = useState(false);
@@ -145,9 +146,9 @@ export default function CartPage() {
   const [copied, setCopied] = useState(false);
   const [showTextPreview, setShowTextPreview] = useState(false);
 
-  const delivery = cartTotal >= 299 ? 0 : 49;
+  const delivery = 0;
   const discount = 0;
-  const total = cartTotal + delivery;
+  const total = cartTotal;
 
   const handleAddNewAddress = (e: React.FormEvent) => {
     e.preventDefault();
@@ -205,7 +206,7 @@ export default function CartPage() {
       hour12: true,
     });
 
-    const paymentMethodLabel = 'Cash on Delivery (Doorstep Cash / UPI QR)';
+    const paymentMethodLabel = 'Cash on Delivery (COD)';
 
     const whatsappText = buildWhatsAppMessage({
       orderId,
@@ -214,7 +215,6 @@ export default function CartPage() {
       customerPhone,
       address: chosenAddress.address,
       addressLabel: chosenAddress.label,
-      slotLabel: chosenSlot.label,
       cartTotal,
       delivery,
       total,
@@ -223,7 +223,10 @@ export default function CartPage() {
       dateTime: dateTimeStr,
     });
 
-    const whatsappUrl = `https://wa.me/${SELLER_WHATSAPP_NUMBER}?text=${encodeURIComponent(whatsappText)}`;
+    const isMobile = typeof navigator !== 'undefined' && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    const whatsappUrl = isMobile
+      ? `https://api.whatsapp.com/send/?phone=${SELLER_WHATSAPP_NUMBER}&text=${encodeURIComponent(whatsappText)}&type=phone_number&app_absent=0`
+      : `https://web.whatsapp.com/send/?phone=${SELLER_WHATSAPP_NUMBER}&text=${encodeURIComponent(whatsappText)}&_t=${Date.now()}`;
 
     const orderRecord: ConfirmedOrder = {
       orderId,
@@ -250,41 +253,112 @@ export default function CartPage() {
     clearCart();
     setStep('success');
 
-    // Save order to backend
-    fetch('/api/customer/orders', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
+    // Save order to backend and sync with customer profile
+    const orderPayload = {
+      order_number: orderId,
+      items: itemsSnapshot.map((it) => ({
+        product_name: it.name,
+        variant_label: it.quantityLabel,
+        unit_price: it.price,
+        quantity: it.quantity,
+        line_total: it.price * it.quantity,
+      })),
+      delivery_address: {
+        label: chosenAddress.label,
+        line1: chosenAddress.address,
+        city: 'Sabalgarh',
+        state: 'Madhya Pradesh',
+        pincode: '476229',
+      },
+      delivery_slot: chosenSlot.label,
+      subtotal: cartTotal,
+      delivery_fee: delivery,
+      discount,
+      total,
+      payment_method: 'cod',
+      notes: customerNote || undefined,
+      placed_at: now.toISOString(),
+    };
+
+    createCustomerOrder(orderPayload).catch((err) => {
+      console.warn('Could not post order to backend:', err);
+    });
+
+    // Also store in localStorage so ProfilePage displays this exact order immediately with accurate timestamp
+    try {
+      const prevStored = JSON.parse(localStorage.getItem('freshmart_placed_orders') || '[]');
+      const localRecord = {
+        _id: `ord-${Date.now()}`,
+        id: `ord-${Date.now()}`,
         order_number: orderId,
+        customer_id: 'cust-current',
+        status: 'pending',
+        payment_status: 'cod_pending',
+        payment_method: 'cod',
+        subtotal: cartTotal,
+        discount,
+        delivery_fee: delivery,
+        tax: 0,
+        total,
+        delivery_address: {
+          label: chosenAddress.label,
+          line1: chosenAddress.address,
+          city: 'Sabalgarh',
+          state: 'Madhya Pradesh',
+          pincode: '476229',
+        },
+        delivery_slot: chosenSlot.label,
+        notes: customerNote || undefined,
+        placed_at: now.toISOString(),
+        delivery_eta: '10-15 Mins',
         items: itemsSnapshot.map((it) => ({
+          _id: `it-${Date.now()}-${Math.random()}`,
           product_name: it.name,
           variant_label: it.quantityLabel,
           unit_price: it.price,
           quantity: it.quantity,
           line_total: it.price * it.quantity,
+          image: it.image,
         })),
-        delivery_address: {
-          label: chosenAddress.label,
-          line1: chosenAddress.address,
-        },
-        delivery_slot: chosenSlot.label,
-        subtotal: cartTotal,
-        delivery_fee: delivery,
-        discount,
-        total,
-        payment_method: 'cod',
-        notes: customerNote || undefined,
-      }),
-    }).catch((err) => {
-      console.warn('Could not post order to backend:', err);
-    });
+      };
+      localStorage.setItem('freshmart_placed_orders', JSON.stringify([localRecord, ...prevStored.filter((p: any) => p.order_number !== orderId)]));
+    } catch {}
 
-    // Automatically trigger WhatsApp redirect
+    // 1. Always copy text to clipboard as guaranteed backup
     try {
-      window.open(whatsappUrl, '_blank');
+      if (navigator?.clipboard) {
+        navigator.clipboard.writeText(whatsappText);
+      }
+    } catch {}
+
+    // 2. Open WhatsApp reliably with a unique window target name
+    const windowTarget = `WhatsApp_${orderId}`;
+    try {
+      const link = document.createElement('a');
+      link.href = whatsappUrl;
+      if (!isMobile) {
+        link.target = windowTarget;
+        link.rel = 'noopener noreferrer';
+      }
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
     } catch (e) {
-      console.error('Failed to auto-open WhatsApp:', e);
+      console.warn('Programmatic link click failed:', e);
     }
+
+    // 3. Fallback for mobile and popup-blocked browsers
+    setTimeout(() => {
+      try {
+        if (isMobile) {
+          window.location.href = whatsappUrl;
+        } else {
+          window.open(whatsappUrl, windowTarget);
+        }
+      } catch (e) {
+        console.error('Fallback WhatsApp open failed:', e);
+      }
+    }, 250);
   };
 
   const handleCopyOrder = () => {
@@ -370,16 +444,28 @@ export default function CartPage() {
             </div>
 
             <div className="flex flex-col sm:flex-row gap-2 mt-3">
-              <a
-                href={confirmedOrder.whatsappUrl}
-                target="_blank"
-                rel="noopener noreferrer"
+              <button
+                type="button"
+                onClick={() => {
+                  if (confirmedOrder?.whatsappText) {
+                    try {
+                      navigator.clipboard.writeText(confirmedOrder.whatsappText);
+                    } catch {}
+                  }
+                  const isMob = typeof navigator !== 'undefined' && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+                  const targetWin = `WhatsApp_${confirmedOrder?.orderId || Date.now()}`;
+                  if (isMob) {
+                    window.location.href = confirmedOrder?.whatsappUrl || '';
+                  } else {
+                    window.open(confirmedOrder?.whatsappUrl, targetWin);
+                  }
+                }}
                 className="flex-1 bg-[#25D366] hover:bg-[#1EBE5D] text-white font-bold text-xs py-2.5 px-4 rounded-xl flex items-center justify-center gap-2 shadow-sm active:scale-95 transition-all text-center"
               >
                 <Send size={14} />
                 <span>Open WhatsApp & Send Order</span>
                 <ExternalLink size={12} className="opacity-80" />
-              </a>
+              </button>
               <button
                 type="button"
                 onClick={handleCopyOrder}
@@ -388,6 +474,16 @@ export default function CartPage() {
                 {copied ? <Check size={14} className="text-emerald-600 stroke-[3]" /> : <Copy size={14} />}
                 <span>{copied ? 'Copied!' : 'Copy Summary'}</span>
               </button>
+            </div>
+
+            <div className="mt-2.5 p-2.5 bg-white/80 rounded-xl border border-emerald-200/90 text-[11px] text-emerald-900 flex items-start gap-2 shadow-2xs">
+              <CheckCircle2 size={15} className="text-emerald-600 shrink-0 mt-0.5" />
+              <div>
+                <span className="font-bold">Order message clipboard me copy ho gaya hai!</span>
+                <p className="text-neutral-600 mt-0.5">
+                  Agar WhatsApp pehle se open ho aur text box me message na dikhe, toh chat me seedha <strong>Paste (Ctrl+V)</strong> karke send kar dein.
+                </p>
+              </div>
             </div>
 
             <button
@@ -448,14 +544,22 @@ export default function CartPage() {
         <div className="w-full flex gap-2.5 mt-4">
           <button
             type="button"
-            onClick={() => navigate('home')}
+            onClick={() => {
+              setConfirmedOrder(null);
+              setStep('cart');
+              navigate('home');
+            }}
             className="flex-1 bg-primary-600 hover:bg-primary-700 text-white font-bold text-xs py-2.5 px-4 rounded-xl active:scale-95 transition-all text-center shadow-xs"
           >
             Continue Shopping
           </button>
           <button
             type="button"
-            onClick={() => navigate('profile', 'orders')}
+            onClick={() => {
+              setConfirmedOrder(null);
+              setStep('cart');
+              navigate('profile', 'orders');
+            }}
             className="bg-white hover:bg-neutral-50 text-neutral-700 font-bold text-xs py-2.5 px-4 rounded-xl border border-neutral-200 transition-all text-center"
           >
             My Orders
@@ -546,11 +650,9 @@ export default function CartPage() {
                     <p className="text-[10.5px] text-emerald-700">Dispatched immediately from your local dark store</p>
                   </div>
                 </div>
-                {cartTotal < 299 && (
-                  <span className="text-[10px] font-bold bg-white text-emerald-800 border border-emerald-200 px-2 py-0.5 rounded-lg shrink-0">
-                    Add ₹{299 - cartTotal} for FREE Delivery
-                  </span>
-                )}
+                <span className="text-[10px] font-bold bg-white text-emerald-800 border border-emerald-200 px-2 py-0.5 rounded-lg shrink-0">
+                  FREE Delivery
+                </span>
               </div>
 
               {/* Items Card List */}
@@ -800,12 +902,6 @@ export default function CartPage() {
               <div className="flex justify-between text-neutral-600">
                 <span>Items Total ({cartCount})</span>
                 <span className="font-semibold text-neutral-800">₹{cartTotal}</span>
-              </div>
-              <div className="flex justify-between text-neutral-600">
-                <span>Delivery Charge</span>
-                <span className={`font-semibold ${delivery === 0 ? 'text-primary-600' : 'text-neutral-800'}`}>
-                  {delivery === 0 ? 'FREE' : `₹${delivery}`}
-                </span>
               </div>
               <div className="flex justify-between text-neutral-600">
                 <span>Payment Mode</span>

@@ -65,10 +65,6 @@ export default function ZeptoProductCard({
   const handleAdd = (e: React.MouseEvent) => {
     e.stopPropagation();
     addToCart(productObj, variant);
-    if (removeFromWishlistOnAdd) {
-      removeFromWishlist(id);
-      if (productObj.slug) removeFromWishlist(productObj.slug);
-    }
   };
 
   const handleIncrement = (e: React.MouseEvent) => {
@@ -77,10 +73,6 @@ export default function ZeptoProductCard({
       updateCartQuantity(id, variant.id, quantity + 1);
     } else {
       addToCart(productObj, variant);
-    }
-    if (removeFromWishlistOnAdd) {
-      removeFromWishlist(id);
-      if (productObj.slug) removeFromWishlist(productObj.slug);
     }
   };
 

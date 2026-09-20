@@ -22,8 +22,8 @@ export default function Sidebar({ mobileOpen, onClose }: SidebarProps) {
             <Leaf size={20} className="text-white" />
           </div>
           <div>
-            <span className="text-lg font-bold text-neutral-800">FreshMart</span>
-            <p className="text-[10px] text-neutral-500 -mt-0.5">Admin Console</p>
+            <span className="text-sm font-bold text-neutral-800 leading-tight block">Agrawal General & Provisional Store</span>
+            <p className="text-[10px] text-neutral-500 mt-0.5">Admin Console</p>
           </div>
         </div>
         <button onClick={onClose} className="lg:hidden text-neutral-400" aria-label="Close menu">

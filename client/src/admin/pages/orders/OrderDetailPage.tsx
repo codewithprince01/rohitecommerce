@@ -68,7 +68,12 @@ function printInvoice(order: Order) {
       .meta{font-size:13px;color:#374151;line-height:1.6}
     </style></head><body>
     <div class="top">
-      <div><div class="brand">FreshMart</div><div class="muted">Tax Invoice</div></div>
+      <div>
+        <div class="brand">Agrawal General & Provisional Store</div>
+        <div class="muted" style="font-size:11px;line-height:1.4;margin-top:2px;">Fatehchand colony, ward no 5, near ram mandir chauraha, sabalgarh, Morena, madhya pradesh - 476229, India</div>
+        <div class="muted" style="font-size:11px;font-weight:600;">Orders & Support: +91 9285108057</div>
+        <div class="muted" style="font-weight:bold;margin-top:4px;">Tax Invoice</div>
+      </div>
       <div class="meta r" style="text-align:right">
         <strong>${order.order_number}</strong><br/>
         ${formatDateTime(order.placed_at)}<br/>

@@ -194,11 +194,11 @@ async function seedMisc() {
     { name: 'City Center', pincodes: ['110001', '110002'], fee: 25, min_order: 0, free_above: 499, eta_minutes: 30 },
   ]);
   await StoreSetting.create([
-    { key: 'general', value: { store_name: 'FreshMart', currency: 'INR', currency_symbol: '₹', support_email: 'support@freshmart.com', support_phone: '+91 98765 43210' } },
+    { key: 'general', value: { store_name: 'Agrawal General & Provisional Store', currency: 'INR', currency_symbol: '₹', support_email: 'care@agrawalstore.in', support_phone: '+91 9285108057', address: 'Fatehchand colony, ward no 5, near ram mandir chauraha, sabalgarh, Morena, madhya pradesh - 476229, India' } },
     { key: 'checkout', value: { tax_rate: 0, default_delivery_fee: 25, free_delivery_threshold: 499 } },
   ]);
   await Notification.create([
-    { type: 'system', title: 'Welcome to FreshMart Admin', body: 'Your store backend is live.' },
+    { type: 'system', title: 'Welcome to Agrawal General & Provisional Store Admin', body: 'Your store backend is live.' },
   ]);
   logger.info('Seeded coupons, banners, payment methods, delivery zones, settings');
 }

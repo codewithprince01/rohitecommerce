@@ -121,7 +121,7 @@ const AVATAR_PRESETS = [
   },
   {
     id: 'avatar-12',
-    label: 'FreshMart Explorer ✨',
+    label: 'Agrawal Store Explorer ✨',
     url: 'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?auto=compress&cs=tinysrgb&w=200',
     category: 'Portrait',
   },
@@ -292,7 +292,7 @@ export default function ProfileSettingsView({
       id: 'sess-1',
       device: 'Desktop',
       browser: 'Chrome 128 on Windows 11',
-      location: 'Gurugram, Haryana, India',
+      location: 'Sabalgarh, Morena, Madhya Pradesh, India',
       ip: '103.211.54.19',
       lastActive: 'Active Now',
       isCurrent: true,
@@ -300,7 +300,7 @@ export default function ProfileSettingsView({
     {
       id: 'sess-2',
       device: 'Mobile',
-      browser: 'FreshMart Quick App • iPhone 15 Pro',
+      browser: 'Agrawal Store App • iPhone 15 Pro',
       location: 'New Delhi, India',
       ip: '182.73.12.88',
       lastActive: '18 mins ago',
@@ -583,7 +583,7 @@ export default function ProfileSettingsView({
         })),
       })),
       exportMetadata: {
-        platform: 'FreshMart Quick Commerce Pvt. Ltd.',
+        platform: 'Agrawal General & Provisional Store',
         dataProtectionCompliance: 'Digital Personal Data Protection (DPDP) Act 2023',
         generatedAt: new Date().toISOString(),
       },
@@ -593,7 +593,7 @@ export default function ProfileSettingsView({
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `freshmart_personal_data_${Date.now()}.json`;
+    a.download = `agrawal_store_personal_data_${Date.now()}.json`;
     a.click();
     URL.revokeObjectURL(url);
     showToast('Personal account data downloaded in JSON format! 📥');
@@ -1139,7 +1139,7 @@ export default function ProfileSettingsView({
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-neutral-100 pb-4">
             <div>
               <h2 className="text-base font-black text-neutral-900">Communication & Alert Preferences</h2>
-              <p className="text-xs text-neutral-500 mt-0.5">Control how and when FreshMart sends you delivery updates and alerts</p>
+              <p className="text-xs text-neutral-500 mt-0.5">Control how and when Agrawal General & Provisional Store sends you delivery updates and alerts</p>
             </div>
             <button
               type="button"
@@ -1399,7 +1399,7 @@ export default function ProfileSettingsView({
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-neutral-100 pb-4">
               <div>
                 <h3 className="text-sm font-black text-neutral-900">Active Devices & Logged-in Sessions</h3>
-                <p className="text-xs text-neutral-500 mt-0.5">These devices are currently logged into your FreshMart account</p>
+                <p className="text-xs text-neutral-500 mt-0.5">These devices are currently logged into your Agrawal Store account</p>
               </div>
               {sessions.length > 1 && (
                 <button
@@ -2135,10 +2135,10 @@ export default function ProfileSettingsView({
               <AlertTriangle className="w-6 h-6" />
             </div>
             <h3 className="text-base font-black text-neutral-900 text-center mb-1">
-              Deactivate or Delete FreshMart Account?
+              Deactivate or Delete Agrawal Store Account?
             </h3>
             <p className="text-xs text-neutral-500 text-center mb-4">
-              This action initiates permanent removal of your account, saved addresses, FreshPass VIP perks, and order records.
+              This action initiates permanent removal of your account, saved addresses, VIP perks, and order records.
             </p>
 
             <form onSubmit={handleDeleteAccount} className="space-y-4 text-xs">

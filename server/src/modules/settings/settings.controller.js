@@ -10,12 +10,12 @@ import { logActivity } from '../../services/activity.service.js';
  */
 const DEFAULTS = {
   general: {
-    store_name: 'FreshMart',
+    store_name: 'Agrawal General & Provisional Store',
     currency: 'INR',
     currency_symbol: '₹',
-    support_email: '',
-    support_phone: '',
-    address: '',
+    support_email: 'care@agrawalstore.in',
+    support_phone: '+91 9285108057',
+    address: 'Fatehchand colony, ward no 5, near ram mandir chauraha, sabalgarh, Morena, madhya pradesh - 476229, India',
   },
   checkout: {
     tax_rate: 0,

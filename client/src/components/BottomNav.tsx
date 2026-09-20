@@ -36,15 +36,17 @@ export default function BottomNav() {
       {/* Desktop Sidebar - Left Side */}
       <aside className="hidden lg:block fixed left-0 top-0 bottom-0 w-64 bg-white border-r border-neutral-100 z-40 overflow-y-auto">
         {/* Logo */}
-        <div className="p-6 border-b border-neutral-100">
-          <button onClick={() => navigate('home')} className="flex items-center gap-3 text-left">
-            <div className="w-11 h-11 rounded-2xl bg-primary-500 flex items-center justify-center shadow-sm flex-shrink-0">
-              <Leaf size={22} className="text-white" />
-            </div>
-            <div>
-              <span className="text-xl font-bold text-neutral-800 tracking-tight">FreshMart</span>
-              <p className="text-[10px] text-neutral-500 -mt-0.5">Express Grocery Store</p>
-            </div>
+        <div className="px-4 py-5 border-b border-neutral-100 bg-white">
+          <button
+            onClick={() => navigate('home')}
+            className="w-full flex items-center justify-center p-1 rounded-xl hover:bg-neutral-50 transition-all duration-200 group"
+            title="Agrawal General & Provisional Store"
+          >
+            <img
+              src="/agrawal_log.png"
+              alt="Agrawal General & Provisional Store"
+              className="w-full h-auto max-h-[72px] object-contain transition-transform duration-200 group-hover:scale-105"
+            />
           </button>
         </div>
 

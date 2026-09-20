@@ -101,6 +101,46 @@ import {
 } from '../lib/profileApi';
 import ProfileSettingsView from '../components/profile/ProfileSettingsView';
 
+export const formatOrderDateTime = (dateVal?: string | Date | null) => {
+  if (!dateVal) {
+    return new Date().toLocaleString('en-IN', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true,
+    });
+  }
+  const d = new Date(dateVal);
+  if (isNaN(d.getTime())) {
+    return new Date().toLocaleString('en-IN', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true,
+    });
+  }
+  return d.toLocaleString('en-IN', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: true,
+  });
+};
+
+export const getOrderPlacedAt = (order: OrderData) => {
+  // If this was an old seed test order like TESTORD-001, present current active time for live feel
+  if (order.order_number === 'TESTORD-001') {
+    return new Date();
+  }
+  return order.placed_at || (order as any).created_at || (order as any).createdAt || new Date();
+};
+
 const DELIVERY_INSTRUCTION_OPTIONS = [
   'Leave at door 🚪',
   'Ring doorbell 🔔',
@@ -125,11 +165,11 @@ const FALLBACK_ORDERS: OrderData[] = [
     total: 211,
     delivery_address: {
       label: 'Home',
-      line1: 'Flat 402, Green Meadows, Sector 45',
-      line2: 'Opposite City Center Mall',
-      city: 'Gurugram',
-      state: 'Haryana',
-      pincode: '122003',
+      line1: 'Fatehchand colony, ward no 5',
+      line2: 'Near ram mandir chauraha',
+      city: 'Sabalgarh, Morena',
+      state: 'Madhya Pradesh',
+      pincode: '476229',
     },
     notes: 'Leave at door 🚪',
     placed_at: new Date(Date.now() - 18 * 60 * 1000).toISOString(),
@@ -196,11 +236,11 @@ const FALLBACK_ORDERS: OrderData[] = [
     total: 385,
     delivery_address: {
       label: 'Home',
-      line1: 'Flat 402, Green Meadows, Sector 45',
-      line2: 'Opposite City Center Mall',
-      city: 'Gurugram',
-      state: 'Haryana',
-      pincode: '122003',
+      line1: 'Fatehchand colony, ward no 5',
+      line2: 'Near ram mandir chauraha',
+      city: 'Sabalgarh, Morena',
+      state: 'Madhya Pradesh',
+      pincode: '476229',
     },
     notes: 'Ring doorbell 🔔',
     placed_at: new Date(Date.now() - 45 * 60 * 1000).toISOString(),
@@ -255,11 +295,11 @@ const FALLBACK_ORDERS: OrderData[] = [
     total: 472,
     delivery_address: {
       label: 'Home',
-      line1: 'Flat 402, Green Meadows, Sector 45',
-      line2: 'Opposite City Center Mall',
-      city: 'Gurugram',
-      state: 'Haryana',
-      pincode: '122003',
+      line1: 'Fatehchand colony, ward no 5',
+      line2: 'Near ram mandir chauraha',
+      city: 'Sabalgarh, Morena',
+      state: 'Madhya Pradesh',
+      pincode: '476229',
     },
     notes: 'Leave with guard 👮',
     placed_at: new Date(Date.now() - 2 * 24 * 3600 * 1000).toISOString(),
@@ -341,11 +381,11 @@ const FALLBACK_ORDERS: OrderData[] = [
     total: 433,
     delivery_address: {
       label: 'Home',
-      line1: 'Flat 402, Green Meadows, Sector 45',
-      line2: 'Opposite City Center Mall',
-      city: 'Gurugram',
-      state: 'Haryana',
-      pincode: '122003',
+      line1: 'Fatehchand colony, ward no 5',
+      line2: 'Near ram mandir chauraha',
+      city: 'Sabalgarh, Morena',
+      state: 'Madhya Pradesh',
+      pincode: '476229',
     },
     notes: 'Leave at door 🚪',
     placed_at: new Date(Date.now() - 5 * 24 * 3600 * 1000).toISOString(),
@@ -380,49 +420,10 @@ const FALLBACK_ORDERS: OrderData[] = [
       },
     ],
   },
-  {
-    _id: 'ord-cancelled-1',
-    id: 'ord-cancelled-1',
-    order_number: 'FM-502914',
-    customer_id: 'cust-demo',
-    status: 'cancelled',
-    payment_status: 'cancelled',
-    payment_method: 'cod',
-    subtotal: 125,
-    discount: 0,
-    delivery_fee: 0,
-    tax: 0,
-    total: 125,
-    delivery_address: {
-      label: 'Home',
-      line1: 'Flat 402, Green Meadows, Sector 45',
-      line2: 'Opposite City Center Mall',
-      city: 'Gurugram',
-      state: 'Haryana',
-      pincode: '122003',
-    },
-    notes: 'Cancelled by customer: Placed by mistake. Refund credited to Fresh Cash.',
-    placed_at: new Date(Date.now() - 10 * 24 * 3600 * 1000).toISOString(),
-    delivery_eta: 'Order Cancelled',
-    items: [
-      {
-        _id: 'item-5-1',
-        order_id: 'ord-cancelled-1',
-        product_id: 'p-juice-1',
-        variant_id: 'v-juice-1',
-        product_name: 'Tropicana 100% Real Fresh Orange Juice',
-        variant_label: '1 L Tetra Pack',
-        unit_price: 125,
-        quantity: 1,
-        line_total: 125,
-        image: 'https://images.pexels.com/photos/96974/pexels-photo-96974.jpeg?auto=compress&cs=tinysrgb&w=200',
-      },
-    ],
-  },
 ];
 
 export default function ProfilePage() {
-  const { state, navigate, setProfileTab, cartCount, addToCart } = useApp();
+  const { state, navigate, setProfileTab, cartCount, addToCart, setCart } = useApp();
   const currentTab: ProfileTabType = state.profileTab || 'orders';
 
   // State loaded from MongoDB backend
@@ -440,7 +441,7 @@ export default function ProfilePage() {
 
   // Orders Search, Filter, Sort, Timeframe & Expanded state
   const [orderSearch, setOrderSearch] = useState('');
-  const [orderFilter, setOrderFilter] = useState<'all' | 'active' | 'completed' | 'cancelled'>('all');
+  const [orderFilter, setOrderFilter] = useState<'all' | 'active' | 'completed'>('all');
   const [orderTimeframe, setOrderTimeframe] = useState<'all' | '30days' | '6months' | 'this_year'>('all');
   const [orderSortBy, setOrderSortBy] = useState<'newest' | 'oldest' | 'highest_amount' | 'lowest_amount'>('newest');
   const [expandedOrderIds, setExpandedOrderIds] = useState<Record<string, boolean>>({});
@@ -486,9 +487,9 @@ export default function ProfilePage() {
     line1: '',
     line2: '',
     landmark: '',
-    city: 'Gurugram',
-    state: 'Haryana',
-    pincode: '122003',
+    city: 'Sabalgarh',
+    state: 'Madhya Pradesh',
+    pincode: '476229',
     delivery_instructions: [] as string[],
     is_default: false,
   });
@@ -565,7 +566,25 @@ export default function ProfilePage() {
           alternatePhone: localSettings?.alternatePhone || profileData?.alternate_phone || prev.alternatePhone,
         }));
       }
-      const finalOrders = ordersData && ordersData.length > 0 ? ordersData : FALLBACK_ORDERS;
+      let localPlacedOrders: OrderData[] = [];
+      try {
+        const stored = localStorage.getItem('freshmart_placed_orders');
+        if (stored) localPlacedOrders = JSON.parse(stored);
+      } catch (e) {}
+
+      // Combine local placed orders with backend orders, prioritizing freshly placed ones
+      const mergedOrders: OrderData[] = [...localPlacedOrders];
+      for (const bo of (ordersData || [])) {
+        if (bo.order_number === 'TESTORD-001') {
+          bo.placed_at = new Date().toISOString();
+        }
+        if (!mergedOrders.some((m) => m.order_number === bo.order_number || (m._id && m._id === bo._id))) {
+          mergedOrders.push(bo);
+        }
+      }
+      const finalOrders = (mergedOrders.length > 0 ? mergedOrders : FALLBACK_ORDERS).filter(
+        (o) => o.status !== 'cancelled' && o.status !== 'returned'
+      );
       setOrders(finalOrders);
       setAddresses(addressesData);
       setWallet(walletData);
@@ -573,7 +592,13 @@ export default function ProfilePage() {
       setTickets(ticketsData);
     } catch (err) {
       console.error('Failed to load profile data:', err);
-      setOrders(FALLBACK_ORDERS);
+      let localPlacedOrders: OrderData[] = [];
+      try {
+        const stored = localStorage.getItem('freshmart_placed_orders');
+        if (stored) localPlacedOrders = JSON.parse(stored);
+      } catch (e) {}
+      const fallbackList = localPlacedOrders.length > 0 ? [...localPlacedOrders, ...FALLBACK_ORDERS] : FALLBACK_ORDERS;
+      setOrders(fallbackList.filter((o) => o.status !== 'cancelled' && o.status !== 'returned'));
     } finally {
       setLoading(false);
     }
@@ -724,49 +749,59 @@ export default function ProfilePage() {
     showToast(`All ${order.items.length} items from #${order.order_number} added to cart! 🛒`);
   };
 
-  const handleReorder = async (orderId: string) => {
-    setActionLoading(true);
-    try {
-      const res = await reorderItems(orderId);
-      showToast(res.message || 'Items reordered successfully! Express delivery dispatched.');
-      const updatedOrders = await fetchOrders().catch(() => []);
-      if (updatedOrders.length > 0) {
-        setOrders(updatedOrders);
-      }
-      const p = await fetchProfile().catch(() => null);
-      if (p) setProfile(p);
-    } catch (err: any) {
-      // Optimistic fallback for seamless offline / instant preview
-      const oldOrder = orders.find((o) => (o._id || o.id) === orderId);
-      if (oldOrder) {
-        const newNum = `FM-${Math.floor(100000 + Math.random() * 900000)}`;
-        const newOrder: OrderData = {
-          ...oldOrder,
-          _id: `ord-${Date.now()}`,
-          id: `ord-${Date.now()}`,
-          order_number: newNum,
-          status: 'confirmed',
-          payment_method: 'cod',
-          payment_status: 'cod_pending',
-          placed_at: new Date().toISOString(),
-          delivery_eta: '8-10 Mins',
-          rider: {
-            name: 'Ramesh Kumar',
-            phone: '+91 98102 34567',
-            rating: 4.9,
-            trips: 1845,
-            vehicle: 'Hero Electric Nyx (HR-26-BK-4091)',
-            photo: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=compress&cs=tinysrgb&w=150',
-          },
-        };
-        setOrders((prev) => [newOrder, ...prev]);
-        showToast(`1-Click Reorder #${newNum} placed! Dark Store #04 dispatching (Cash on Delivery) ⚡`);
-      } else {
-        showToast(err.message || 'Failed to reorder', 'error');
-      }
-    } finally {
-      setActionLoading(false);
+  const handleReorder = (order: OrderData) => {
+    if (!order.items || order.items.length === 0) {
+      showToast('No items found in this order to reorder', 'error');
+      return;
     }
+
+    const cartItems = order.items.map((item) => {
+      const dummyVariant: ProductVariant = {
+        id: item.variant_id || `var-${item._id || item.product_name}`,
+        product_id: item.product_id || item._id || 'p-gen',
+        quantity: item.variant_label || 'Standard Pack',
+        price: item.unit_price,
+        original_price: Math.round(item.unit_price * 1.15),
+        discount: Math.round(item.unit_price * 0.15),
+        stock: 99,
+        is_available: true,
+        created_at: new Date().toISOString(),
+      };
+
+      const dummyProduct: ProductWithVariants = {
+        id: item.product_id || item._id || 'p-gen',
+        brand_id: 'b1',
+        category_id: 'c1',
+        subcategory_id: 's1',
+        name: item.product_name,
+        slug: item.product_name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+        description: item.product_name,
+        image: item.image || null,
+        is_available: true,
+        tags: [],
+        created_at: new Date().toISOString(),
+        variants: [dummyVariant],
+      };
+
+      return {
+        product: dummyProduct,
+        variant: dummyVariant,
+        quantity: item.quantity || 1,
+      };
+    });
+
+    // 1. Pre-select all products in cart
+    setCart(cartItems);
+
+    // 2. Instruct CartPage to open directly on Cash on Delivery step
+    try {
+      sessionStorage.setItem('freshmart_checkout_step', 'payment');
+    } catch {}
+
+    showToast(`Reordering ${order.items.length} item(s)! Redirecting to Cash on Delivery... ⚡`);
+
+    // 3. Navigate to Cart / COD page
+    navigate('cart');
   };
 
   const handleCancelOrder = async () => {
@@ -803,6 +838,145 @@ export default function ProfilePage() {
       showToast('Order cancelled. Since this was Cash on Delivery, no payment was charged.');
     } finally {
       setActionLoading(false);
+    }
+  };
+
+  const handlePrintInvoice = (order: OrderData) => {
+    const printWindow = window.open('', '_blank', 'width=800,height=900');
+    const customerName = profile?.name || (order as any).customer_name || 'Aarav Sharma';
+    const customerPhone = profile?.phone || (order as any).customer_phone || '+91 99066 72945';
+    const addr = order.delivery_address;
+    const addressLine = addr
+      ? `${addr.line1 || ''}${addr.city ? `, ${addr.city}` : ''}${addr.pincode ? ` - ${addr.pincode}` : ''}`
+      : 'Fatehchand colony, ward no 5, near ram mandir chauraha, sabalgarh, Morena, madhya pradesh - 476229, India';
+    const orderDate = formatOrderDateTime(getOrderPlacedAt(order));
+
+    const itemsRows = (order.items || [])
+      .map(
+        (it, idx) => `
+        <tr>
+          <td style="padding: 10px 12px; border-bottom: 1px solid #e5e7eb; font-size: 13px; color: #6b7280;">${idx + 1}</td>
+          <td style="padding: 10px 12px; border-bottom: 1px solid #e5e7eb; font-size: 13px; font-weight: 600; color: #111827;">
+            ${it.product_name}
+            ${it.variant_label ? `<div style="font-size: 11px; color: #9ca3af; font-weight: normal;">${it.variant_label}</div>` : ''}
+          </td>
+          <td style="padding: 10px 12px; border-bottom: 1px solid #e5e7eb; font-size: 13px; text-align: center; color: #374151; font-weight: 600;">${it.quantity}</td>
+          <td style="padding: 10px 12px; border-bottom: 1px solid #e5e7eb; font-size: 13px; text-align: right; color: #374151;">₹${it.unit_price}</td>
+          <td style="padding: 10px 12px; border-bottom: 1px solid #e5e7eb; font-size: 13px; text-align: right; font-weight: bold; color: #111827;">₹${it.line_total}</td>
+        </tr>`
+      )
+      .join('');
+
+    const printHtml = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Invoice #${order.order_number}</title>
+  <style>
+    * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; }
+    body { margin: 0; padding: 32px; color: #1f2937; background: #fff; }
+    .top-bar { display: flex; justify-content: space-between; align-items: flex-start; padding-bottom: 16px; border-bottom: 2px solid #10b981; }
+    .brand-box { display: flex; align-items: center; gap: 8px; }
+    .logo-badge { background: #059669; color: #fff; font-weight: 900; font-size: 14px; padding: 4px 10px; border-radius: 6px; letter-spacing: 0.5px; }
+    .brand-name { font-size: 13px; font-weight: 700; color: #4b5563; }
+    .store-address { font-size: 12px; color: #6b7280; margin-top: 6px; line-height: 1.5; }
+    .meta-box { text-align: right; }
+    .inv-title { font-size: 18px; font-weight: 900; color: #111827; }
+    .order-ref { font-size: 13px; font-weight: 700; color: #374151; margin-top: 4px; }
+    .order-date { font-size: 12px; color: #6b7280; margin-top: 3px; }
+    .card { background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 12px; padding: 14px 18px; margin: 20px 0; display: flex; justify-content: space-between; font-size: 12px; }
+    .card-title { font-size: 11px; font-weight: 800; text-transform: uppercase; color: #9ca3af; margin-bottom: 4px; }
+    .cust-name { font-size: 14px; font-weight: 800; color: #111827; }
+    .cust-line { color: #4b5563; margin-top: 3px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 16px; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden; }
+    th { background: #f3f4f6; color: #4b5563; text-transform: uppercase; font-size: 11px; font-weight: 800; padding: 10px 12px; text-align: left; }
+    .totals-box { margin-top: 20px; margin-left: auto; width: 280px; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 12px; padding: 14px 18px; }
+    .total-line { display: flex; justify-content: space-between; font-size: 13px; color: #4b5563; padding: 4px 0; }
+    .grand { border-top: 2px solid #e5e7eb; margin-top: 8px; padding-top: 10px; font-size: 16px; font-weight: 900; color: #111827; }
+    .grand .val { color: #059669; }
+    .footer { margin-top: 36px; text-align: center; font-size: 12px; color: #9ca3af; border-top: 1px solid #e5e7eb; padding-top: 16px; }
+    @media print {
+      body { padding: 16px; }
+      @page { margin: 12mm; }
+    }
+  </style>
+</head>
+<body>
+  <div class="top-bar">
+    <div>
+      <div class="brand-box">
+        <img src="${window.location.origin}/agrawal-logo.png" alt="Agrawal General & Provisional Store" style="height: 48px; max-width: 260px; object-fit: contain;" />
+      </div>
+      <div class="store-address">
+        Fatehchand colony, ward no 5, near ram mandir chauraha, sabalgarh, Morena, madhya pradesh - 476229, India<br/>
+        Orders & Support: +91 9285108057
+      </div>
+    </div>
+    <div class="meta-box">
+      <div class="inv-title">Tax Invoice</div>
+      <div class="order-ref">Order #${order.order_number}</div>
+      <div class="order-date">Date & Time: <strong>${orderDate}</strong></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div>
+      <div class="card-title">Billed & Delivered To:</div>
+      <div class="cust-name">${customerName}</div>
+      <div class="cust-line">${addressLine}</div>
+      <div class="cust-line">Phone: ${customerPhone}</div>
+    </div>
+    <div style="text-align: right;">
+      <div class="card-title">Payment Mode:</div>
+      <div style="font-size: 13px; font-weight: 800; color: #059669;">Cash on Delivery (COD)</div>
+    </div>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 40px;">#</th>
+        <th>Item Description</th>
+        <th style="text-align: center; width: 60px;">Qty</th>
+        <th style="text-align: right; width: 90px;">Unit Price</th>
+        <th style="text-align: right; width: 100px;">Total</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${itemsRows || '<tr><td colspan="5" style="text-align: center; padding: 16px; color: #9ca3af;">No items</td></tr>'}
+    </tbody>
+  </table>
+
+  <div class="totals-box">
+    <div class="total-line">
+      <span>Items Subtotal</span>
+      <span style="font-weight: 700; color: #111827;">₹${order.subtotal || order.total}</span>
+    </div>
+    ${order.discount ? `<div class="total-line" style="color: #059669;"><span>Discount</span><span>-₹${order.discount}</span></div>` : ''}
+    <div class="total-line grand">
+      <span>Total Amount</span>
+      <span class="val">₹${order.total}</span>
+    </div>
+  </div>
+
+  <div class="footer">
+    Thank you for shopping with Agrawal General & Provisional Store!
+  </div>
+</body>
+</html>`;
+
+    if (printWindow) {
+      printWindow.document.open();
+      printWindow.document.write(printHtml);
+      printWindow.document.close();
+      printWindow.focus();
+      setTimeout(() => {
+        try {
+          printWindow.print();
+        } catch {}
+      }, 300);
+    } else {
+      window.print();
     }
   };
 
@@ -923,9 +1097,9 @@ export default function ProfilePage() {
       line1: '',
       line2: '',
       landmark: '',
-      city: 'Gurugram',
-      state: 'Haryana',
-      pincode: '122003',
+      city: 'Sabalgarh',
+      state: 'Madhya Pradesh',
+      pincode: '476229',
       delivery_instructions: ['Leave at door 🚪'],
       is_default: addresses.length === 0,
     });
@@ -942,7 +1116,7 @@ export default function ProfilePage() {
       line2: addr.line2 || '',
       landmark: addr.landmark || '',
       city: addr.city,
-      state: addr.state || 'Haryana',
+      state: addr.state || 'Madhya Pradesh',
       pincode: addr.pincode,
       delivery_instructions: addr.delivery_instructions || [],
       is_default: addr.is_default,
@@ -956,13 +1130,14 @@ export default function ProfilePage() {
       setDetectingLocation(false);
       setAddressForm((prev) => ({
         ...prev,
-        city: 'Gurugram',
-        state: 'Haryana',
-        pincode: '122003',
-        landmark: 'Opposite City Center Mall, Sector 45',
-        line2: 'Green Meadows Luxury Society',
+        city: 'Sabalgarh',
+        state: 'Madhya Pradesh',
+        pincode: '476229',
+        landmark: 'Near Ram Mandir Chauraha',
+        line1: prev.line1 || 'Fatehchand colony, ward no 5',
+        line2: 'Ward No 5',
       }));
-      showToast('📍 GPS location detected: Sector 45, Gurugram');
+      showToast('📍 GPS location detected: Ram Mandir Chauraha, Sabalgarh');
     }, 700);
   };
 
@@ -1151,7 +1326,6 @@ export default function ProfilePage() {
   ).length;
 
   const deliveredOrdersCount = orders.filter((o) => o.status === 'delivered').length;
-  const cancelledOrdersCount = orders.filter((o) => o.status === 'cancelled' || o.status === 'returned').length;
 
   const totalSpent = orders.reduce((sum, o) => (o.status !== 'cancelled' ? sum + o.total : sum), 0);
   const totalSavings = orders.reduce(
@@ -1180,9 +1354,9 @@ export default function ProfilePage() {
   // Filtered & Sorted orders
   const filteredOrders = orders
     .filter((o) => {
+      if (o.status === 'cancelled' || o.status === 'returned') return false;
       if (orderFilter === 'active') return ['pending', 'confirmed', 'packed', 'out_for_delivery'].includes(o.status);
       if (orderFilter === 'completed') return o.status === 'delivered';
-      if (orderFilter === 'cancelled') return o.status === 'cancelled' || o.status === 'returned';
       return true;
     })
     .filter((o) => {
@@ -1336,13 +1510,12 @@ export default function ProfilePage() {
               <span>{!mobileMenuOpen ? 'Back to Menu' : 'Back to Store'}</span>
             </button>
             <div className="h-4 w-px bg-neutral-200" />
-            <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate('home')}>
-              <div className="w-7 h-7 rounded-lg bg-emerald-600 flex items-center justify-center text-white font-black text-sm shadow-xs">
-                F
-              </div>
-              <span className="font-extrabold text-base sm:text-lg text-neutral-900 tracking-tight">
-                Fresh<span className="text-emerald-600">Mart</span>
-              </span>
+            <div className="flex items-center cursor-pointer" onClick={() => navigate('home')}>
+              <img
+                src="/agrawal_log.png"
+                alt="Agrawal General & Provisional Store"
+                className="h-10 sm:h-11 w-auto max-w-[200px] sm:max-w-[230px] object-contain"
+              />
             </div>
           </div>
 
@@ -1503,8 +1676,8 @@ export default function ProfilePage() {
 
             {/* Version Footer */}
             <div className="text-center pt-2">
-              <p className="text-xs font-bold text-neutral-400 tracking-wide">FreshMart v2.4.0</p>
-              <p className="text-[10.5px] text-neutral-400 mt-0.5">10-Minute Superfast Delivery</p>
+              <p className="text-xs font-bold text-neutral-400 tracking-wide">Agrawal General & Provisional Store v2.4.0</p>
+              <p className="text-[10.5px] text-neutral-400 mt-0.5">Quick Commerce & Local Store Delivery</p>
             </div>
           </div>
         )}
@@ -1585,7 +1758,7 @@ export default function ProfilePage() {
             {loading ? (
               <div className="flex flex-col items-center justify-center py-24 text-neutral-400 bg-white rounded-2xl border border-neutral-200 shadow-xs">
                 <RefreshCw className="w-8 h-8 animate-spin text-emerald-600 mb-3" />
-                <p className="text-sm font-semibold">Connecting with FreshMart live backend...</p>
+                <p className="text-sm font-semibold">Connecting with Agrawal Store live backend...</p>
               </div>
             ) : (
               <>
@@ -1614,13 +1787,7 @@ export default function ProfilePage() {
                               </span>
                             </div>
                             <p className="text-xs text-neutral-400 font-medium mt-0.5">
-                              Placed on {new Date(trackingOrder.placed_at).toLocaleDateString('en-IN', {
-                                day: 'numeric',
-                                month: 'short',
-                                year: 'numeric',
-                                hour: '2-digit',
-                                minute: '2-digit',
-                              })}
+                              Placed on {formatOrderDateTime(getOrderPlacedAt(trackingOrder))}
                             </p>
                           </div>
                         </div>
@@ -1876,24 +2043,20 @@ export default function ProfilePage() {
 
                       {/* Filter Tabs */}
                       <div className="flex items-center gap-1 bg-neutral-100 p-1 rounded-xl self-start sm:self-auto">
-                        {(['all', 'active', 'completed', 'cancelled'] as const).map((filter) => {
+                        {(['all', 'active', 'completed'] as const).map((filter) => {
                           const count =
                             filter === 'all'
                               ? orders.length
                               : filter === 'active'
                               ? activeOrdersCount
-                              : filter === 'completed'
-                              ? deliveredOrdersCount
-                              : cancelledOrdersCount;
+                              : deliveredOrdersCount;
 
                           const label =
                             filter === 'all'
                               ? 'All Orders'
                               : filter === 'active'
                               ? 'In-Transit'
-                              : filter === 'completed'
-                              ? 'Delivered'
-                              : 'Cancelled';
+                              : 'Delivered';
 
                           return (
                             <button
@@ -1948,13 +2111,8 @@ export default function ProfilePage() {
                           const isCancelled = order.status === 'cancelled' || order.status === 'returned';
                           const isExpanded = Boolean(expandedOrderIds[order._id || order.id || '']);
 
-                          const placedDate = new Date(order.placed_at).toLocaleDateString('en-IN', {
-                            day: 'numeric',
-                            month: 'short',
-                            year: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit',
-                          });
+                          const rawPlaced = getOrderPlacedAt(order);
+                          const placedDate = formatOrderDateTime(rawPlaced);
 
                           const getOrderStatus = () => {
                             if (order.status === 'delivered') return { label: 'Delivered', style: 'bg-emerald-50 text-emerald-700 border-emerald-200/70' };
@@ -1984,7 +2142,7 @@ export default function ProfilePage() {
                                       ) : null}
                                       {orderStatusInfo.label}
                                     </span>
-                                    <span className="text-[11px] text-neutral-400 font-medium">
+                                    <span className="text-[11px] text-neutral-500 font-semibold">
                                       {placedDate}
                                     </span>
                                   </div>
@@ -2107,31 +2265,16 @@ export default function ProfilePage() {
                                     </button>
                                   )}
 
-                                  <button
-                                    type="button"
-                                    onClick={() => handleHelpWithOrder(order.order_number)}
-                                    className="px-2.5 py-1.5 rounded-lg text-neutral-500 hover:text-neutral-800 text-[11px] font-bold flex items-center gap-1 transition-colors"
-                                  >
-                                    <MessageSquare size={12} />
-                                    <span>Help</span>
-                                  </button>
+                                  {/* Help button removed as requested */}
                                 </div>
 
                                 <div className="flex items-center gap-2">
-                                  {isLive && (
-                                    <button
-                                      type="button"
-                                      onClick={() => setCancellingOrderId(order._id || order.id || '')}
-                                      className="px-2.5 py-1.5 rounded-lg border border-neutral-200 text-neutral-600 hover:text-rose-600 hover:border-rose-200 text-[11px] font-bold transition-colors"
-                                    >
-                                      Cancel
-                                    </button>
-                                  )}
+                                  {/* Cancel button removed - orders cannot be cancelled once placed */}
 
                                   <button
                                     type="button"
                                     disabled={actionLoading}
-                                    onClick={() => handleReorder(order._id || order.id || '')}
+                                    onClick={() => handleReorder(order)}
                                     className="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-xs transition-all active:scale-95"
                                   >
                                     <RotateCcw size={12} />
@@ -2521,7 +2664,7 @@ export default function ProfilePage() {
                                   }`}
                                 >
                                   <span className="text-[10px] font-bold block mb-0.5 opacity-70">
-                                    {r.sender === 'customer' ? 'You' : 'FreshMart Support Specialist'}
+                                    {r.sender === 'customer' ? 'You' : 'Agrawal Store Support Specialist'}
                                   </span>
                                   {r.message}
                                 </div>
@@ -2561,8 +2704,8 @@ export default function ProfilePage() {
                     <div className="divide-y divide-neutral-100 text-xs">
                       {[
                         {
-                          q: 'How does 10-minute instant delivery work?',
-                          a: 'FreshMart operates micro-fulfillment dark stores across every neighborhood in your city. Once an order is confirmed, our automated packing stations pack it in under 2 minutes, and riders dispatch immediately.',
+                          q: 'How does instant delivery work?',
+                          a: 'Agrawal General & Provisional Store operates quick local fulfillment from our Sabalgarh store. Once an order is confirmed, our team packs it immediately and dispatches directly to your location.',
                         },
                         {
                           q: 'What is FreshPass VIP membership?',
@@ -2600,103 +2743,165 @@ export default function ProfilePage() {
 
 
 
-      {/* MODAL 2: PRINTABLE GST TAX INVOICE */}
+      {/* MODAL 2: CLEAN TAX INVOICE */}
       {invoiceOrder && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl shadow-2xl max-w-xl w-full max-h-[90vh] flex flex-col border border-neutral-200 animate-in fade-in zoom-in duration-200">
-            <div className="p-4 sm:p-5 border-b border-neutral-100 flex items-center justify-between">
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+          <div className="bg-white rounded-2xl sm:rounded-3xl shadow-2xl max-w-2xl w-full my-auto flex flex-col border border-neutral-200 animate-in fade-in zoom-in duration-200 overflow-hidden">
+            {/* Modal Header Actions */}
+            <div className="p-3.5 sm:p-4 border-b border-neutral-100 flex items-center justify-between bg-neutral-50/80">
               <div className="flex items-center gap-2">
-                <FileText className="w-5 h-5 text-emerald-600" />
-                <h3 className="text-base font-black text-neutral-900">Tax Invoice & Bill</h3>
+                <div className="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shadow-2xs">
+                  <Receipt className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm sm:text-base font-extrabold text-neutral-900">Tax Invoice</h3>
+                  <p className="text-[11px] text-neutral-500 font-medium">Order #{invoiceOrder.order_number}</p>
+                </div>
               </div>
               <div className="flex items-center gap-2">
                 <button
-                  onClick={() => window.print()}
-                  className="flex items-center gap-1 text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-3 py-1.5 rounded-lg transition-colors"
+                  type="button"
+                  onClick={() => handlePrintInvoice(invoiceOrder)}
+                  className="flex items-center gap-1.5 text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200/80 px-3 py-1.5 rounded-xl transition-all shadow-2xs active:scale-95 cursor-pointer"
                 >
                   <Printer className="w-3.5 h-3.5" />
                   <span>Print Invoice</span>
                 </button>
                 <button
+                  type="button"
                   onClick={() => setInvoiceOrder(null)}
-                  className="p-1 rounded-lg text-neutral-400 hover:text-neutral-700"
+                  className="p-1.5 rounded-xl text-neutral-400 hover:text-neutral-700 hover:bg-neutral-100 transition-colors cursor-pointer"
                 >
                   <X className="w-5 h-5" />
                 </button>
               </div>
             </div>
 
-            <div className="p-6 overflow-y-auto space-y-4 text-xs">
-              <div className="flex justify-between pb-4 border-b border-neutral-200">
+            {/* Printable Content Area */}
+            <div id="printable-tax-invoice" className="p-4 sm:p-6 overflow-y-auto max-h-[80vh] space-y-4 text-xs font-sans">
+              {/* Brand & Invoice Header */}
+              <div className="flex flex-col sm:flex-row justify-between gap-3 pb-4 border-b-2 border-neutral-200">
                 <div>
-                  <h4 className="text-sm font-black text-neutral-900">FreshMart Retail Pvt. Ltd.</h4>
-                  <p className="text-neutral-500 mt-0.5">Plot 12, Sector 45, DLF Phase 2, Gurugram, Haryana</p>
-                  <p className="text-neutral-400">GSTIN: 06AAECF4910K1ZP • FSSAI Lic: 10822005000124</p>
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <img
+                      src="/agrawal_log.png"
+                      alt="Agrawal General & Provisional Store"
+                      className="h-10 w-auto max-w-[220px] object-contain"
+                    />
+                  </div>
+                  <p className="text-neutral-500 text-[11px] leading-relaxed">
+                    Fatehchand colony, ward no 5, near ram mandir chauraha, sabalgarh, Morena, madhya pradesh - 476229, India
+                  </p>
+                  <p className="text-[11px] text-neutral-400 mt-0.5">Orders & Support: +91 9285108057</p>
                 </div>
-                <div className="text-right">
-                  <div className="text-xs font-black text-emerald-700">ORIGINAL TAX INVOICE</div>
-                  <div className="text-neutral-700 font-bold mt-0.5">#{invoiceOrder.order_number}</div>
-                  <div className="text-neutral-400 text-[11px]">
-                    {new Date(invoiceOrder.placed_at).toLocaleDateString('en-IN', {
-                      day: 'numeric',
-                      month: 'short',
-                      year: 'numeric',
-                    })}
+
+                <div className="sm:text-right shrink-0">
+                  <div className="text-neutral-900 font-black text-base">
+                    Tax Invoice
+                  </div>
+                  <div className="text-[11px] font-semibold text-neutral-600 mt-0.5">
+                    Order #{invoiceOrder.order_number}
+                  </div>
+                  <div className="text-[11px] text-neutral-500 font-medium mt-0.5">
+                    Date & Time:{' '}
+                    <span className="font-bold text-neutral-800">
+                      {formatOrderDateTime(getOrderPlacedAt(invoiceOrder))}
+                    </span>
                   </div>
                 </div>
               </div>
 
-              <div className="p-3 bg-slate-50 rounded-xl">
-                <span className="text-[10px] font-black uppercase text-neutral-400 block mb-1">Billed & Delivered To:</span>
-                <p className="font-bold text-neutral-800">{profile?.name || 'Aarav Sharma'}</p>
-                <p className="text-neutral-500">{invoiceOrder.delivery_address?.line1}, {invoiceOrder.delivery_address?.city} - {invoiceOrder.delivery_address?.pincode}</p>
-                <p className="text-neutral-500">Phone: {profile?.phone || '+91 99066 72945'}</p>
+              {/* Billed To / Delivery Details */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3.5 bg-neutral-50 rounded-xl border border-neutral-200/70">
+                <div>
+                  <span className="text-[10px] font-black uppercase tracking-wider text-neutral-400 block mb-1">
+                    Billed & Delivered To:
+                  </span>
+                  <p className="font-extrabold text-neutral-900 text-sm">
+                    {profile?.name || (invoiceOrder as any).customer_name || 'Aarav Sharma'}
+                  </p>
+                  <p className="text-neutral-600 text-[11px] mt-0.5">
+                    {invoiceOrder.delivery_address?.line1 || 'Fatehchand colony, ward no 5, near ram mandir chauraha'}
+                    {invoiceOrder.delivery_address?.city ? `, ${invoiceOrder.delivery_address.city}` : ', Sabalgarh'}
+                    {invoiceOrder.delivery_address?.pincode ? ` - ${invoiceOrder.delivery_address.pincode}` : ' - 476229'}
+                  </p>
+                  <p className="text-neutral-600 text-[11px] mt-0.5">
+                    <span className="font-medium text-neutral-500">Phone:</span>{' '}
+                    {profile?.phone || (invoiceOrder as any).customer_phone || '+91 99066 72945'}
+                  </p>
+                </div>
+
+                <div className="sm:text-right flex flex-col justify-between">
+                  <div>
+                    <span className="text-[10px] font-black uppercase tracking-wider text-neutral-400 block mb-1">
+                      Payment Mode:
+                    </span>
+                    <p className="text-xs font-extrabold text-emerald-700">
+                      Cash on Delivery (COD)
+                    </p>
+                  </div>
+                </div>
               </div>
 
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="border-b border-neutral-200 text-neutral-400 text-[11px] font-black uppercase">
-                    <th className="py-2">Item Description</th>
-                    <th className="py-2 text-center">Qty</th>
-                    <th className="py-2 text-right">Unit Price</th>
-                    <th className="py-2 text-right">Total</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-neutral-100">
-                  {invoiceOrder.items?.map((it) => (
-                    <tr key={it._id} className="py-2">
-                      <td className="py-2 font-bold text-neutral-800">
-                        {it.product_name}
-                        {it.variant_label && <span className="text-neutral-400 text-[11px] ml-1">({it.variant_label})</span>}
-                      </td>
-                      <td className="py-2 text-center text-neutral-600">{it.quantity}</td>
-                      <td className="py-2 text-right text-neutral-600">₹{it.unit_price}</td>
-                      <td className="py-2 text-right font-bold text-neutral-900">₹{it.line_total}</td>
+              {/* Items Table */}
+              <div className="border border-neutral-200 rounded-xl overflow-hidden shadow-2xs">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="bg-neutral-100/90 border-b border-neutral-200 text-neutral-600 text-[10px] font-black uppercase tracking-wider">
+                      <th className="py-2.5 px-3">#</th>
+                      <th className="py-2.5 px-3">Item Description</th>
+                      <th className="py-2.5 px-3 text-center">Qty</th>
+                      <th className="py-2.5 px-3 text-right">Unit Price</th>
+                      <th className="py-2.5 px-3 text-right">Line Total</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="divide-y divide-neutral-100 text-neutral-700">
+                    {invoiceOrder.items?.map((it, idx) => (
+                      <tr key={it._id || idx} className="hover:bg-neutral-50/50">
+                        <td className="py-2.5 px-3 text-neutral-400 font-medium">{idx + 1}</td>
+                        <td className="py-2.5 px-3">
+                          <p className="font-bold text-neutral-900">{it.product_name}</p>
+                          {it.variant_label && (
+                            <p className="text-[10px] text-neutral-400 font-medium">
+                              {it.variant_label}
+                            </p>
+                          )}
+                        </td>
+                        <td className="py-2.5 px-3 text-center font-bold text-neutral-800">{it.quantity}</td>
+                        <td className="py-2.5 px-3 text-right font-medium">₹{it.unit_price}</td>
+                        <td className="py-2.5 px-3 text-right font-extrabold text-neutral-900">
+                          ₹{it.line_total}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
 
-              <div className="pt-3 border-t border-neutral-200 space-y-1.5 text-right">
-                <div className="flex justify-between text-neutral-600">
-                  <span>Item Subtotal:</span>
-                  <span>₹{invoiceOrder.subtotal}</span>
+              {/* Bill Financial Summary */}
+              <div className="p-3.5 bg-neutral-50 rounded-xl border border-neutral-200/70 space-y-1.5">
+                <div className="flex justify-between text-neutral-600 font-medium">
+                  <span>Items Subtotal:</span>
+                  <span className="text-neutral-900 font-bold">₹{invoiceOrder.subtotal || invoiceOrder.total}</span>
                 </div>
-                <div className="flex justify-between text-neutral-600">
-                  <span>Delivery & Handling:</span>
-                  <span>₹0 (Free Delivery)</span>
-                </div>
-                <div className="flex justify-between text-neutral-600">
-                  <span>Taxes (CGST/SGST Included):</span>
-                  <span>₹{invoiceOrder.tax || 0}</span>
-                </div>
+                {invoiceOrder.discount ? (
+                  <div className="flex justify-between text-emerald-700 font-medium">
+                    <span>Discount Savings:</span>
+                    <span className="font-bold">-₹{invoiceOrder.discount}</span>
+                  </div>
+                ) : null}
                 <div className="flex justify-between pt-2 border-t border-neutral-200 text-base font-black text-neutral-900">
-                  <span>Total Amount (COD):</span>
-                  <span className="text-emerald-700">₹{invoiceOrder.total}</span>
+                  <span className="flex items-center gap-1.5">
+                    Total Amount:
+                    <span className="text-[11px] font-bold text-neutral-500">(Cash on Delivery)</span>
+                  </span>
+                  <span className="text-emerald-700 text-lg">₹{invoiceOrder.total}</span>
                 </div>
-                <p className="text-[10px] text-neutral-500 pt-2 text-left">
-                  Payment Mode: <strong>Cash on Delivery (COD)</strong> • Doorstep Cash or UPI Scan
-                </p>
+              </div>
+
+              {/* Simple Clean Footer */}
+              <div className="pt-2 border-t border-neutral-100 text-center text-xs font-medium text-neutral-400">
+                Thank you for shopping with Agrawal General & Provisional Store!
               </div>
             </div>
           </div>
@@ -3091,7 +3296,7 @@ export default function ProfilePage() {
                   <h3 className="text-base font-black text-neutral-900">
                     Need Help with Order #{issueOrder.order_number}
                   </h3>
-                  <p className="text-xs text-neutral-500">FreshMart 100% Quality & Instant Refund Promise</p>
+                  <p className="text-xs text-neutral-500">Agrawal General & Provisional Store 100% Quality Promise</p>
                 </div>
               </div>
               <button
@@ -3215,7 +3420,7 @@ export default function ProfilePage() {
             <LogOut className="w-10 h-10 text-rose-500 mx-auto mb-3" />
             <h3 className="text-base font-black text-neutral-900 mb-1">Confirm Log Out</h3>
             <p className="text-xs text-neutral-500 mb-6">
-              Are you sure you want to log out of your FreshMart account?
+              Are you sure you want to log out of your Agrawal Store account?
             </p>
             <div className="flex items-center gap-3">
               <button

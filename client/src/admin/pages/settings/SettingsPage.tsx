@@ -127,10 +127,10 @@ export default function SettingsPage() {
             <Input value={form.general.store_name} disabled={ro} onChange={(e) => setGroup('general', { store_name: e.target.value })} />
           </FormField>
           <FormField label="Support email" error={errors.support_email}>
-            <Input value={form.general.support_email} disabled={ro} placeholder="support@store.com" onChange={(e) => setGroup('general', { support_email: e.target.value })} />
+            <Input value={form.general.support_email} disabled={ro} placeholder="care@agrawalstore.in" onChange={(e) => setGroup('general', { support_email: e.target.value })} />
           </FormField>
           <FormField label="Support phone">
-            <Input value={form.general.support_phone} disabled={ro} placeholder="+91 98765 43210" onChange={(e) => setGroup('general', { support_phone: e.target.value })} />
+            <Input value={form.general.support_phone} disabled={ro} placeholder="+91 9285108057" onChange={(e) => setGroup('general', { support_phone: e.target.value })} />
           </FormField>
           <div className="grid grid-cols-2 gap-4">
             <FormField label="Currency code">
@@ -141,7 +141,7 @@ export default function SettingsPage() {
             </FormField>
           </div>
           <FormField label="Store address" className="sm:col-span-2">
-            <Textarea value={form.general.address} disabled={ro} placeholder="Street, city, state, pincode" onChange={(e) => setGroup('general', { address: e.target.value })} />
+            <Textarea value={form.general.address} disabled={ro} placeholder="Fatehchand colony, ward no 5, near ram mandir chauraha, sabalgarh, Morena, madhya pradesh - 476229, India" onChange={(e) => setGroup('general', { address: e.target.value })} />
           </FormField>
         </div>
       </Section>

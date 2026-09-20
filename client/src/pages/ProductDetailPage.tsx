@@ -130,7 +130,7 @@ export default function ProductDetailPage() {
       try {
         await navigator.share({
           title: product.name,
-          text: `Check out ${product.name} on FreshMart!`,
+          text: `Check out ${product.name} on Agrawal General & Provisional Store!`,
           url: window.location.href,
         });
       } catch (e) {}

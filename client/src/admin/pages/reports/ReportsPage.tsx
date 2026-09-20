@@ -67,7 +67,7 @@ export default function ReportsPage() {
   const exportSummaryCsv = () => {
     if (!data) return;
     const rows = data.byDay.map((d) => ({ date: d.date, revenue: d.revenue, orders: d.orders }));
-    downloadCsv(`freshmart-daily-${applied.from}-to-${applied.to}.csv`, toCsv(rows));
+    downloadCsv(`agrawal-store-daily-${applied.from}-to-${applied.to}.csv`, toCsv(rows));
   };
 
   const exportOrders = async () => {
@@ -75,7 +75,7 @@ export default function ReportsPage() {
     try {
       const csv = await exportOrdersCsv(`${applied.from}T00:00:00`, `${applied.to}T23:59:59`);
       if (!csv) return toast.error('No orders in this range');
-      downloadCsv(`freshmart-orders-${applied.from}-to-${applied.to}.csv`, csv);
+      downloadCsv(`agrawal-store-orders-${applied.from}-to-${applied.to}.csv`, csv);
       toast.success('Orders exported');
     } catch (err: any) {
       toast.error(err?.message ?? 'Export failed');

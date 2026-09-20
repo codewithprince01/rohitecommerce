@@ -161,6 +161,19 @@ export async function fetchOrders(): Promise<OrderData[]> {
   return json.data;
 }
 
+export async function createCustomerOrder(data: any): Promise<any> {
+  const res = await fetch(`${API_BASE}/customer/orders`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const json = await res.json().catch(() => ({}));
+    throw new Error(json.message || 'Failed to place order');
+  }
+  return res.json();
+}
+
 export async function cancelOrder(orderId: string, reason?: string): Promise<any> {
   const res = await fetch(`${API_BASE}/customer/orders/${orderId}/cancel`, {
     method: 'POST',

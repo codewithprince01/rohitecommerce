@@ -54,6 +54,7 @@ type AppAction =
   | { type: 'REMOVE_FROM_CART'; productId: string; variantId: string }
   | { type: 'UPDATE_CART_QUANTITY'; productId: string; variantId: string; quantity: number }
   | { type: 'CLEAR_CART' }
+  | { type: 'SET_CART'; items: CartItem[] }
   | { type: 'TOGGLE_WISHLIST'; productId: string }
   | { type: 'REMOVE_FROM_WISHLIST'; productId: string }
   | { type: 'CLEAR_WISHLIST' }
@@ -75,9 +76,9 @@ function getInitialLocation(): DeliveryLocation {
     if (saved) return JSON.parse(saved);
   } catch (e) {}
   return {
-    city: 'Bengaluru',
-    area: 'Koramangala 4th Block',
-    pincode: '560034',
+    city: 'Sabalgarh',
+    area: 'Ram Mandir Chauraha',
+    pincode: '476229',
     addressLabel: 'Home',
   };
 }
@@ -280,6 +281,9 @@ function appReducer(state: AppState, action: AppAction): AppState {
     case 'CLEAR_CART':
       return { ...state, cart: [] };
 
+    case 'SET_CART':
+      return { ...state, cart: action.items };
+
     case 'TOGGLE_WISHLIST': {
       const exists = state.wishlist.includes(action.productId);
       const nextWishlist = exists
@@ -352,6 +356,7 @@ interface AppContextType {
   removeFromCart: (productId: string, variantId: string) => void;
   updateCartQuantity: (productId: string, variantId: string, quantity: number) => void;
   clearCart: () => void;
+  setCart: (items: CartItem[]) => void;
   cartTotal: number;
   cartCount: number;
 }
@@ -451,6 +456,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         updateCartQuantity: (productId, variantId, quantity) =>
           dispatch({ type: 'UPDATE_CART_QUANTITY', productId, variantId, quantity }),
         clearCart: () => dispatch({ type: 'CLEAR_CART' }),
+        setCart: (items: CartItem[]) => dispatch({ type: 'SET_CART', items }),
         cartTotal,
         cartCount,
       }}

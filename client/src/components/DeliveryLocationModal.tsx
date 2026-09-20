@@ -8,18 +8,18 @@ interface DeliveryLocationModalProps {
 }
 
 const popularCities = [
-  { name: 'Bengaluru', areas: ['Indiranagar', 'Koramangala', 'HSR Layout', 'Whitefield', 'Jayanagar'] },
+  { name: 'Sabalgarh (Morena)', areas: ['Ram Mandir Chauraha', 'Fatehchand Colony', 'Ward No 5', 'Main Market', 'Station Road'] },
+  { name: 'Morena', areas: ['Sabalgarh', 'Station Road', 'Joura Road', 'Porsa', 'Ambah'] },
+  { name: 'Gwalior', areas: ['Lashkar', 'City Center', 'Morar', 'Thatipur', 'Hazira'] },
   { name: 'Delhi NCR', areas: ['Connaught Place', 'Gurugram Sec 29', 'Noida Sec 18', 'South Ext', 'Dwarka'] },
-  { name: 'Mumbai', areas: ['Bandra West', 'Andheri East', 'Powai', 'Colaba', 'Juhu'] },
-  { name: 'Hyderabad', areas: ['Banjara Hills', 'Hitec City', 'Gachibowli', 'Jubilee Hills', 'Kondapur'] },
-  { name: 'Pune', areas: ['Kothrud', 'Viman Nagar', 'Baner', 'Hinjewadi', 'Koregaon Park'] },
+  { name: 'Bengaluru', areas: ['Indiranagar', 'Koramangala', 'HSR Layout', 'Whitefield', 'Jayanagar'] },
 ];
 
 export default function DeliveryLocationModal({ isOpen, onClose }: DeliveryLocationModalProps) {
   const { deliveryLocation, setDeliveryLocation } = useApp();
-  const [selectedCity, setSelectedCity] = useState(deliveryLocation.city || 'Bengaluru');
-  const [selectedArea, setSelectedArea] = useState(deliveryLocation.area || 'Koramangala 4th Block');
-  const [pincode, setPincode] = useState(deliveryLocation.pincode || '560034');
+  const [selectedCity, setSelectedCity] = useState(deliveryLocation.city || 'Sabalgarh');
+  const [selectedArea, setSelectedArea] = useState(deliveryLocation.area || 'Ram Mandir Chauraha');
+  const [pincode, setPincode] = useState(deliveryLocation.pincode || '476229');
   const [label, setLabel] = useState<string>(deliveryLocation.addressLabel || 'Home');
   const [pincodeValid, setPincodeValid] = useState<boolean | null>(true);
 
@@ -41,7 +41,7 @@ export default function DeliveryLocationModal({ isOpen, onClose }: DeliveryLocat
     const newLoc: DeliveryLocation = {
       city: selectedCity,
       area: selectedArea,
-      pincode: pincode.length === 6 ? pincode : '560034',
+      pincode: pincode.length === 6 ? pincode : '476229',
       addressLabel: label,
     };
     setDeliveryLocation(newLoc);

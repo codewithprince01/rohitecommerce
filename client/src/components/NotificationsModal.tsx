@@ -174,7 +174,7 @@ export default function NotificationsModal({ isOpen, onClose }: NotificationsMod
         {/* Footer */}
         <div className="p-3 bg-neutral-50 border-t border-neutral-100 text-center">
           <p className="text-[11px] text-neutral-500">
-            FreshMart notifications keep you posted with lowest grocery rates
+            Agrawal General & Provisional Store notifications keep you posted with lowest grocery rates
           </p>
         </div>
       </div>
