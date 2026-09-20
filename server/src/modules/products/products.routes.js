@@ -34,6 +34,7 @@ const router = Router();
 
 // Public storefront endpoints
 router.get('/', listProducts);
+router.get('/:id', getProduct);
 
 // Admin-only endpoints require authentication
 router.use(requireAuth);
@@ -46,8 +47,5 @@ router.post('/bulk/availability', requirePermission('products.update'),
   validate(z.object({ ids: z.array(z.string()).min(1), is_available: z.boolean() })), bulkAvailability);
 router.post('/bulk/delete', requirePermission('products.delete'),
   validate(z.object({ ids: z.array(z.string()).min(1) })), bulkDelete);
-
-// Single product fetch (accessible to both or admin)
-router.get('/:id', getProduct);
 
 export default router;

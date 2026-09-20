@@ -6,7 +6,7 @@ import {
   ShoppingBag,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
-import { getAllProducts } from '../lib/data';
+import { getAllProducts, getProductById } from '../lib/data';
 import type { ProductWithVariants } from '../lib/supabase';
 import ZeptoProductCard from '../components/ZeptoProductCard';
 
@@ -16,20 +16,62 @@ export default function WishlistPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (wishlist.length === 0) {
+      setProducts([]);
+      setLoading(false);
+      return;
+    }
+
+    // Instant UI update for removed items
+    setProducts((prev) =>
+      prev.filter(
+        (p) =>
+          wishlist.includes(p.id) ||
+          (p.slug && wishlist.includes(p.slug)) ||
+          ((p as any)._id && wishlist.includes((p as any)._id))
+      )
+    );
+
+    let isMounted = true;
+
     async function loadWishlistItems() {
-      setLoading(true);
       try {
         const all = await getAllProducts();
-        const filtered = all.filter((p) => wishlist.includes(p.id));
-        setProducts(filtered);
+        if (!isMounted) return;
+
+        const matchedProducts: ProductWithVariants[] = [];
+        const seenIds = new Set<string>();
+
+        for (const wId of wishlist) {
+          let found = all.find(
+            (p) => p.id === wId || p.slug === wId || (p as any)._id === wId
+          );
+          if (!found) {
+            found = await getProductById(wId);
+          }
+          if (found && !seenIds.has(found.id)) {
+            seenIds.add(found.id);
+            matchedProducts.push(found);
+          }
+        }
+
+        if (isMounted) {
+          setProducts(matchedProducts);
+        }
       } catch (err) {
         console.error('Failed to load wishlist items', err);
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     }
 
     loadWishlistItems();
+
+    return () => {
+      isMounted = false;
+    };
   }, [wishlist]);
 
   const handleMoveAllToCart = () => {
@@ -38,6 +80,7 @@ export default function WishlistPage() {
         addToCart(product, product.variants[0]);
       }
     });
+    clearWishlist();
     navigate('cart');
   };
 
@@ -124,6 +167,7 @@ export default function WishlistPage() {
                 key={product.id}
                 product={product}
                 className="w-full"
+                removeFromWishlistOnAdd={true}
               />
             ))}
           </div>

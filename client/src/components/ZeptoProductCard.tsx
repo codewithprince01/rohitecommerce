@@ -8,9 +8,15 @@ interface ZeptoProductCardProps {
   item?: ZeptoProductItem;
   product?: ProductWithVariants;
   className?: string;
+  removeFromWishlistOnAdd?: boolean;
 }
 
-export default function ZeptoProductCard({ item, product, className = '' }: ZeptoProductCardProps) {
+export default function ZeptoProductCard({
+  item,
+  product,
+  className = '',
+  removeFromWishlistOnAdd = false,
+}: ZeptoProductCardProps) {
   const {
     cart,
     addToCart,
@@ -18,6 +24,7 @@ export default function ZeptoProductCard({ item, product, className = '' }: Zept
     removeFromCart,
     openProduct,
     toggleWishlist,
+    removeFromWishlist,
     isInWishlist,
   } = useApp();
 
@@ -49,7 +56,7 @@ export default function ZeptoProductCard({ item, product, className = '' }: Zept
   const rating = item?.rating || 4.7;
   const reviews = item?.reviews || '1.8k';
 
-  const isFav = isInWishlist(id);
+  const isFav = isInWishlist(id) || (Boolean(productObj.slug) && isInWishlist(productObj.slug));
 
   // Find if item is in cart
   const cartItem = cart.find((c) => c.product.id === id);
@@ -58,6 +65,10 @@ export default function ZeptoProductCard({ item, product, className = '' }: Zept
   const handleAdd = (e: React.MouseEvent) => {
     e.stopPropagation();
     addToCart(productObj, variant);
+    if (removeFromWishlistOnAdd) {
+      removeFromWishlist(id);
+      if (productObj.slug) removeFromWishlist(productObj.slug);
+    }
   };
 
   const handleIncrement = (e: React.MouseEvent) => {
@@ -66,6 +77,10 @@ export default function ZeptoProductCard({ item, product, className = '' }: Zept
       updateCartQuantity(id, variant.id, quantity + 1);
     } else {
       addToCart(productObj, variant);
+    }
+    if (removeFromWishlistOnAdd) {
+      removeFromWishlist(id);
+      if (productObj.slug) removeFromWishlist(productObj.slug);
     }
   };
 
@@ -86,8 +101,8 @@ export default function ZeptoProductCard({ item, product, className = '' }: Zept
       }`}
     >
       <div>
-        {/* Product Image Area - Image goes flush to the top with rounded corners */}
-        <div className="relative w-full h-28 sm:h-32 bg-white overflow-hidden">
+        {/* Product Image Area */}
+        <div className="relative w-full h-24 sm:h-28 bg-white overflow-hidden">
           <img
             src={image}
             alt={name}
@@ -100,43 +115,48 @@ export default function ZeptoProductCard({ item, product, className = '' }: Zept
             type="button"
             onClick={(e) => {
               e.stopPropagation();
-              toggleWishlist(id);
+              if (isFav) {
+                removeFromWishlist(id);
+                if (productObj.slug) removeFromWishlist(productObj.slug);
+              } else {
+                toggleWishlist(id);
+              }
             }}
             title={isFav ? 'Remove from wishlist' : 'Save to wishlist'}
-            className="absolute top-2 right-2 w-7 h-7 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center shadow-sm hover:scale-110 active:scale-95 transition-all z-10"
+            className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center shadow-xs hover:scale-110 active:scale-95 transition-all z-10"
           >
             <Heart
-              size={13}
+              size={12}
               className={isFav ? 'text-rose-500 fill-rose-500' : 'text-neutral-400 hover:text-neutral-600'}
             />
           </button>
 
           {/* ADD Button or Counter overlay at Bottom-Right of Image */}
-          <div className="absolute bottom-1.5 right-1.5 z-10">
+          <div className="absolute bottom-1 right-1 z-10">
             {quantity === 0 ? (
               <button
                 type="button"
                 onClick={handleAdd}
-                className="bg-white hover:bg-primary-600 text-primary-600 hover:text-white border-2 border-primary-500 font-black text-[11px] px-2.5 py-0.5 rounded-lg shadow-md active:scale-95 transition-all flex items-center justify-center"
+                className="bg-white hover:bg-primary-600 text-primary-600 hover:text-white border-2 border-primary-500 font-black text-[10.5px] px-2 py-0.5 rounded-lg shadow-sm active:scale-95 transition-all flex items-center justify-center leading-tight"
               >
                 ADD
               </button>
             ) : (
-              <div className="bg-primary-600 text-white text-[11px] font-bold px-1.5 py-0.5 rounded-lg shadow-md flex items-center gap-1.5">
+              <div className="bg-primary-600 text-white text-[10.5px] font-bold px-1.5 py-0.5 rounded-lg shadow-sm flex items-center gap-1.5">
                 <button
                   type="button"
                   onClick={handleDecrement}
-                  className="w-3.5 h-3.5 flex items-center justify-center hover:opacity-80 active:scale-90"
+                  className="w-3 h-3 flex items-center justify-center hover:opacity-80 active:scale-90"
                 >
-                  <Minus size={10} className="stroke-[3]" />
+                  <Minus size={9} className="stroke-[3]" />
                 </button>
-                <span className="min-w-[10px] text-center font-black text-[11px]">{quantity}</span>
+                <span className="min-w-[8px] text-center font-black text-[10.5px]">{quantity}</span>
                 <button
                   type="button"
                   onClick={handleIncrement}
-                  className="w-3.5 h-3.5 flex items-center justify-center hover:opacity-80 active:scale-90"
+                  className="w-3 h-3 flex items-center justify-center hover:opacity-80 active:scale-90"
                 >
-                  <Plus size={10} className="stroke-[3]" />
+                  <Plus size={9} className="stroke-[3]" />
                 </button>
               </div>
             )}
@@ -144,40 +164,40 @@ export default function ZeptoProductCard({ item, product, className = '' }: Zept
         </div>
 
         {/* Content Section below Image */}
-        <div className="p-2 sm:p-2.5 pt-1.5">
+        <div className="p-2 pt-1">
           {/* Pricing & Discount */}
           <div className="flex items-baseline gap-1">
-            <span className="bg-[#15803D] text-white text-[11px] font-black px-1.5 py-0.5 rounded-[4px] leading-tight">
+            <span className="bg-[#15803D] text-white text-[10.5px] font-black px-1.5 py-0.5 rounded-[4px] leading-tight">
               ₹{price}
             </span>
             {originalPrice > price && (
-              <span className="text-[10px] text-neutral-400 line-through font-medium leading-none">
+              <span className="text-[9.5px] text-neutral-400 line-through font-medium leading-none">
                 ₹{originalPrice}
               </span>
             )}
           </div>
           {discountAmount > 0 && (
-            <p className="text-[9.5px] text-[#15803D] font-bold mt-0.5 leading-none">
+            <p className="text-[9px] text-[#15803D] font-bold mt-0.5 leading-none">
               ₹{discountAmount} OFF
             </p>
           )}
 
           {/* Title */}
-          <h3 className="text-[11.5px] sm:text-xs font-semibold text-neutral-800 line-clamp-2 leading-snug min-h-[28px] mt-1 group-hover:text-primary-600 transition-colors">
+          <h3 className="text-[11px] sm:text-[11.5px] font-semibold text-neutral-800 line-clamp-2 leading-tight min-h-[26px] mt-0.5 group-hover:text-primary-600 transition-colors">
             {name}
           </h3>
 
           {/* Pack Size / Weight */}
-          <p className="text-[10px] text-neutral-500 font-normal mt-0.5 leading-tight">
+          <p className="text-[9.5px] text-neutral-500 font-normal mt-0.5 leading-tight">
             {weight}
           </p>
         </div>
       </div>
 
       {/* Rating Footer */}
-      <div className="px-2 sm:px-2.5 pb-2">
-        <div className="flex items-center gap-1 text-[9.5px] text-neutral-600 font-medium pt-1.5 border-t border-neutral-100">
-          <Star size={9} className="fill-[#15803D] text-[#15803D]" />
+      <div className="px-2 pb-1.5">
+        <div className="flex items-center gap-1 text-[9px] text-neutral-600 font-medium pt-1 border-t border-neutral-100">
+          <Star size={8.5} className="fill-[#15803D] text-[#15803D]" />
           <span className="font-bold text-neutral-800">{rating}</span>
           <span className="text-neutral-400">({reviews})</span>
         </div>

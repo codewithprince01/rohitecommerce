@@ -55,6 +55,7 @@ type AppAction =
   | { type: 'UPDATE_CART_QUANTITY'; productId: string; variantId: string; quantity: number }
   | { type: 'CLEAR_CART' }
   | { type: 'TOGGLE_WISHLIST'; productId: string }
+  | { type: 'REMOVE_FROM_WISHLIST'; productId: string }
   | { type: 'CLEAR_WISHLIST' }
   | { type: 'SET_LOCATION'; location: DeliveryLocation }
   | { type: 'SYNC_URL'; state: Omit<AppState, 'cart' | 'wishlist' | 'deliveryLocation'> };
@@ -210,7 +211,15 @@ function appReducer(state: AppState, action: AppAction): AppState {
       return {
         ...state,
         selectedProductId: action.productId,
-        currentPage: action.productId ? 'product-detail' : 'products',
+        currentPage: action.productId
+          ? 'product-detail'
+          : state.selectedBrandSlug
+          ? 'products'
+          : state.selectedSubcategorySlug
+          ? 'brands'
+          : state.selectedCategorySlug
+          ? 'subcategories'
+          : 'home',
       };
 
     case 'SET_SEARCH':
@@ -282,6 +291,14 @@ function appReducer(state: AppState, action: AppAction): AppState {
       return { ...state, wishlist: nextWishlist };
     }
 
+    case 'REMOVE_FROM_WISHLIST': {
+      const nextWishlist = state.wishlist.filter(id => id !== action.productId);
+      try {
+        localStorage.setItem('freshmart_wishlist', JSON.stringify(nextWishlist));
+      } catch (e) {}
+      return { ...state, wishlist: nextWishlist };
+    }
+
     case 'CLEAR_WISHLIST': {
       try {
         localStorage.removeItem('freshmart_wishlist');
@@ -319,6 +336,7 @@ interface AppContextType {
   wishlist: string[];
   wishlistCount: number;
   toggleWishlist: (productId: string) => void;
+  removeFromWishlist: (productId: string) => void;
   isInWishlist: (productId: string) => boolean;
   clearWishlist: () => void;
   deliveryLocation: DeliveryLocation;
@@ -349,6 +367,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const toggleWishlist = (productId: string) => {
     dispatch({ type: 'TOGGLE_WISHLIST', productId });
+  };
+
+  const removeFromWishlist = (productId: string) => {
+    dispatch({ type: 'REMOVE_FROM_WISHLIST', productId });
   };
 
   const isInWishlist = (productId: string) => {
@@ -412,6 +434,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         wishlist: state.wishlist,
         wishlistCount,
         toggleWishlist,
+        removeFromWishlist,
         isInWishlist,
         clearWishlist,
         deliveryLocation: state.deliveryLocation,

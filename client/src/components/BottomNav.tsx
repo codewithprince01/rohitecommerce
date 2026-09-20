@@ -29,6 +29,7 @@ const mobileTabs: NavItem[] = [
 
 export default function BottomNav() {
   const { state, navigate, cartCount, wishlistCount } = useApp();
+  const isProductDetail = state.currentPage === 'product-detail';
 
   return (
     <>
@@ -97,27 +98,11 @@ export default function BottomNav() {
             );
           })}
         </nav>
-
-        {/* Bottom Section */}
-        <div className="p-4 mt-auto">
-          <div className="bg-gradient-to-br from-emerald-600 to-teal-700 rounded-2xl p-4 text-white shadow-md">
-            <div className="flex items-center gap-2">
-              <span className="px-2 py-0.5 rounded-md bg-white/20 text-[10px] font-bold">10 MINS</span>
-              <p className="text-xs font-bold">Instant Delivery</p>
-            </div>
-            <p className="text-[11px] text-emerald-100 mt-1">Farm fresh fruits, milk & groceries</p>
-            <button
-              onClick={() => navigate('offers')}
-              className="mt-3 w-full bg-white text-emerald-700 text-xs font-bold py-2 rounded-xl hover:bg-emerald-50 active:scale-95 transition-all shadow-sm"
-            >
-              View Coupon Deals
-            </button>
-          </div>
-        </div>
       </aside>
 
-      {/* Mobile Bottom Navigation */}
-      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white shadow-bottom border-t border-neutral-100">
+      {/* Mobile Bottom Navigation (hidden on product-detail so product action bar takes over) */}
+      {!isProductDetail && (
+        <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white shadow-bottom border-t border-neutral-100">
         <div className="max-w-md mx-auto flex items-center justify-around px-1 py-1.5">
           {mobileTabs.map(({ id, label, icon: Icon }) => {
             const active = state.currentPage === id;
@@ -161,6 +146,7 @@ export default function BottomNav() {
           })}
         </div>
       </nav>
+      )}
     </>
   );
 }

@@ -3,7 +3,6 @@ import { ChevronRight } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { getCategories, getFeaturedProducts } from '../lib/data';
 import type { Category, ProductWithVariants } from '../lib/supabase';
-import ZeptoHeroBanners from '../components/ZeptoHeroBanners';
 import ZeptoCategoryGrid from '../components/ZeptoCategoryGrid';
 import ZeptoShelfRow from '../components/ZeptoShelfRow';
 import ZeptoProductCard from '../components/ZeptoProductCard';
@@ -52,9 +51,6 @@ export default function HomePage() {
 
   return (
     <div className="pb-8 lg:pb-12 max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 pt-3">
-      {/* Top Dual Hero Banners: Zepto Experience + Paan Corner */}
-      <ZeptoHeroBanners />
-
       {/* 2-Row Shop by Category Grid */}
       <ZeptoCategoryGrid />
 

@@ -6,6 +6,7 @@ import {
   mockBrands,
   mockProducts
 } from './mockData';
+import { allHomeZeptoProducts, findZeptoProductById } from '../data/homeZeptoData';
 
 const API_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:4000/api').replace(/\/$/, '');
 
@@ -328,6 +329,24 @@ function mapProduct(p: any): ProductWithVariants {
       subcategory_id: p.brand.subcategory_id || '',
       created_at: p.brand.created_at || new Date().toISOString(),
     } : undefined,
+    category: p.category ? {
+      id: p.category.id || p.category._id,
+      name: p.category.name,
+      slug: p.category.slug || '',
+      image: p.category.image || null,
+      bg_color: p.category.bg_color || '',
+      sort_order: p.category.sort_order || 0,
+      created_at: p.category.created_at || new Date().toISOString(),
+    } : undefined,
+    subcategory: p.subcategory ? {
+      id: p.subcategory.id || p.subcategory._id,
+      category_id: p.category_id || (p.category ? (p.category.id || p.category._id) : ''),
+      name: p.subcategory.name,
+      slug: p.subcategory.slug || '',
+      image: p.subcategory.image || null,
+      sort_order: p.subcategory.sort_order || 0,
+      created_at: p.subcategory.created_at || new Date().toISOString(),
+    } : undefined,
   };
 }
 
@@ -422,8 +441,58 @@ export async function getProductsByCategory(categorySlug: string): Promise<Produ
     .sort((a, b) => a.name.localeCompare(b.name));
 }
 
+// Fetch products by subcategory with variants
+export async function getProductsBySubcategory(subcategorySlug: string): Promise<ProductWithVariants[]> {
+  try {
+    const subRes = await fetch(`${API_BASE}/categories/sub/list?pageSize=100&search=${encodeURIComponent(subcategorySlug)}`);
+    if (subRes.ok) {
+      const subJson = await subRes.json();
+      const sub = subJson?.data?.rows?.find((s: any) => s.slug === subcategorySlug);
+      if (sub) {
+        const res = await fetch(`${API_BASE}/products?pageSize=100&subcategory_id=${sub.id || sub._id}`);
+        if (res.ok) {
+          const json = await res.json();
+          const rows = json?.data?.rows;
+          if (Array.isArray(rows) && rows.length > 0) {
+            return rows.map(mapProduct);
+          }
+        }
+      }
+    }
+  } catch (e) {}
+
+  try {
+    const { data: subcategoryData, error: subError } = await supabase
+      .from('subcategories')
+      .select('id')
+      .eq('slug', subcategorySlug)
+      .single();
+
+    if (!subError && subcategoryData) {
+      const { data, error } = await supabase
+        .from('products')
+        .select(`*, variants:product_variants (*)`)
+        .eq('subcategory_id', subcategoryData.id)
+        .order('name', { ascending: true });
+
+      if (!error && Array.isArray(data) && data.length > 0) return data as ProductWithVariants[];
+    }
+  } catch (err) {
+    handleFetchError('getProductsBySubcategory', err);
+  }
+
+  const subcat = mockSubcategories.find(s => s.slug === subcategorySlug);
+  if (!subcat) return [];
+  return mockProducts
+    .filter(p => p.subcategory_id === subcat.id)
+    .sort((a, b) => a.name.localeCompare(b.name));
+}
+
 // Fetch single product with all variants
 export async function getProductBySlug(slug: string): Promise<ProductWithVariants | null> {
+  const zepto = findZeptoProductById(slug);
+  if (zepto) return zepto;
+
   try {
     const res = await fetch(`${API_BASE}/products?pageSize=10&search=${encodeURIComponent(slug)}`);
     if (res.ok) {
@@ -450,6 +519,9 @@ export async function getProductBySlug(slug: string): Promise<ProductWithVariant
 
 // Fetch product by ID with all variants
 export async function getProductById(id: string): Promise<ProductWithVariants | null> {
+  const zepto = findZeptoProductById(id);
+  if (zepto) return zepto;
+
   try {
     const res = await fetch(`${API_BASE}/products/${id}`);
     if (res.ok) {
@@ -472,7 +544,7 @@ export async function getProductById(id: string): Promise<ProductWithVariants | 
     handleFetchError('getProductById', err);
   }
 
-  const product = mockProducts.find(p => p.id === id);
+  const product = mockProducts.find(p => p.id === id || p.slug === id);
   if (!product) return null;
   const brand = mockBrands.find(b => b.id === product.brand_id);
   return {
@@ -610,27 +682,45 @@ export async function getBrandBySlug(slug: string): Promise<Brand | null> {
 
 // Get all products
 export async function getAllProducts(): Promise<ProductWithVariants[]> {
+  let apiProducts: ProductWithVariants[] = [];
   try {
-    const res = await fetch(`${API_BASE}/products?pageSize=100`);
+    const res = await fetch(`${API_BASE}/products?pageSize=200`);
     if (res.ok) {
       const json = await res.json();
       const rows = json?.data?.rows;
       if (Array.isArray(rows) && rows.length > 0) {
-        return rows.map(mapProduct);
+        apiProducts = rows.map(mapProduct);
       }
     }
   } catch (e) {}
 
-  try {
-    const { data, error } = await supabase
-      .from('products')
-      .select(`*, variants:product_variants (*)`);
+  if (apiProducts.length === 0) {
+    try {
+      const { data, error } = await supabase
+        .from('products')
+        .select(`*, variants:product_variants (*)`);
 
-    if (!error && Array.isArray(data) && data.length > 0) return data as ProductWithVariants[];
-  } catch (err) {
-    handleFetchError('getAllProducts', err);
+      if (!error && Array.isArray(data) && data.length > 0) {
+        apiProducts = data as ProductWithVariants[];
+      }
+    } catch (err) {
+      handleFetchError('getAllProducts', err);
+    }
   }
 
-  return mockProducts;
+  // Combine api products, mock products, and home zepto products deduplicated by ID / slug
+  const seen = new Set<string>();
+  const allList: ProductWithVariants[] = [];
+
+  for (const p of [...apiProducts, ...mockProducts, ...allHomeZeptoProducts]) {
+    const key = p.id || p.slug;
+    if (key && !seen.has(key)) {
+      seen.add(key);
+      if (p.slug) seen.add(p.slug);
+      allList.push(p);
+    }
+  }
+
+  return allList;
 }
 

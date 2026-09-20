@@ -687,3 +687,21 @@ export function convertToProductWithVariants(item: ZeptoProductItem): ProductWit
     } : undefined,
   };
 }
+
+export const allHomeZeptoProducts: ProductWithVariants[] = [
+  ...laundryProducts,
+  ...cleaningProducts,
+  ...riceProducts,
+  ...hairCareProducts,
+].map(convertToProductWithVariants);
+
+export function findZeptoProductById(idOrSlug: string): ProductWithVariants | null {
+  const allItems = [
+    ...laundryProducts,
+    ...cleaningProducts,
+    ...riceProducts,
+    ...hairCareProducts,
+  ];
+  const found = allItems.find((p) => p.id === idOrSlug || p.slug === idOrSlug);
+  return found ? convertToProductWithVariants(found) : null;
+}

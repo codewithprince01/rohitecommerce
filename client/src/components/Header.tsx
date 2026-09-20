@@ -134,7 +134,8 @@ export default function Header() {
         </div>
 
         {/* Mobile Header */}
-        <div className="lg:hidden">
+        {state.currentPage !== 'product-detail' && (
+          <div className="lg:hidden">
           <div className="max-w-md mx-auto px-4">
             {/* Top bar */}
             <div className="flex items-center justify-between py-3">
@@ -150,50 +151,24 @@ export default function Header() {
                     <span className="text-[10px] text-neutral-500 font-medium">Delivering to</span>
                     <ChevronDown size={12} className="text-neutral-400" />
                   </div>
-                  <span className="text-xs font-bold text-neutral-800 block truncate max-w-[130px]">
+                  <span className="text-xs font-bold text-neutral-800 block truncate max-w-[220px]">
                     {deliveryLocation.area || deliveryLocation.city}
                   </span>
                 </div>
               </button>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center">
                 <button
-                  className="relative w-9 h-9 rounded-full bg-neutral-100 flex items-center justify-center"
-                  onClick={() => setNotificationsModalOpen(true)}
-                >
-                  <Bell size={18} className="text-neutral-600" />
-                  <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-accent-500" />
-                </button>
-
-                <button
-                  className="relative w-9 h-9 rounded-full bg-neutral-100 flex items-center justify-center"
-                  onClick={() => navigate('wishlist')}
-                >
-                  <Heart size={18} className={wishlistCount > 0 ? 'text-rose-500 fill-rose-500' : 'text-neutral-600'} />
-                  {wishlistCount > 0 && (
-                    <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-[16px] px-1 rounded-full bg-rose-500 text-white text-[9px] font-bold flex items-center justify-center">
-                      {wishlistCount}
-                    </span>
-                  )}
-                </button>
-
-                <button
-                  className="relative w-9 h-9 rounded-full bg-neutral-100 flex items-center justify-center"
+                  className="relative w-9 h-9 rounded-full bg-neutral-100 hover:bg-neutral-200 flex items-center justify-center transition-colors active:scale-95"
                   onClick={() => navigate('cart')}
+                  aria-label="View Cart"
                 >
-                  <ShoppingCart size={18} className="text-neutral-600" />
+                  <ShoppingCart size={18} className="text-neutral-700" />
                   {cartCount > 0 && (
-                    <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-primary-500 text-white text-[10px] font-bold flex items-center justify-center">
+                    <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-emerald-600 text-white text-[10px] font-bold flex items-center justify-center shadow-xs">
                       {cartCount}
                     </span>
                   )}
-                </button>
-
-                <button
-                  className="w-9 h-9 rounded-full bg-neutral-100 flex items-center justify-center"
-                  onClick={() => navigate('profile')}
-                >
-                  <User size={18} className="text-neutral-600" />
                 </button>
               </div>
             </div>
@@ -221,7 +196,7 @@ export default function Header() {
               </div>
             </div>
           </div>
-        </div>
+        )}
       </header>
 
       {/* Location Modal */}

@@ -197,9 +197,55 @@ export const productStats = asyncHandler(async (_req, res) => {
 });
 
 export const getProduct = asyncHandler(async (req, res) => {
-  const doc = await Product.findById(req.params.id)
-    .populate([{ path: 'variants' }, { path: 'brand', select: 'id name' }])
+  const isObjectId = mongoose.isValidObjectId(req.params.id);
+  let query = isObjectId ? { _id: req.params.id } : { slug: req.params.id };
+
+  const legacyMap = {
+    'prod-v9': 'bottle-gourd-lauki-ghiya',
+    'prod-49': 'fresh-tomatoes',
+    'prod-50': 'fresh-potatoes',
+    'prod-51': 'fresh-onions',
+    'prod-v1': 'green-capsicum-shimla-mirch',
+    'prod-v2': 'fresh-orange-carrots-gajar',
+    'prod-v3': 'fresh-green-cucumber-kheera',
+    'prod-v4': 'lady-finger-bhindi',
+    'prod-v5': 'spicy-green-chillies-hari-mirch',
+    'prod-v6': 'fresh-ginger-adrak',
+    'prod-v7': 'garlic-bulbs-desi-lehsun',
+    'prod-v8': 'juicy-yellow-lemon-nimbu',
+    'prod-v10': 'fresh-green-peas-hari-matar',
+  };
+
+  if (legacyMap[req.params.id]) {
+    query = { slug: legacyMap[req.params.id] };
+  }
+
+  let doc = await Product.findOne(query)
+    .populate([
+      { path: 'variants' },
+      { path: 'brand', select: 'id name slug logo' },
+      { path: 'category', select: 'id name slug' },
+      { path: 'subcategory', select: 'id name slug' },
+    ])
     .lean({ virtuals: true });
+
+  // If not found by slug directly, try regex search on slug or name
+  if (!doc && !isObjectId) {
+    doc = await Product.findOne({
+      $or: [
+        { slug: new RegExp(req.params.id.replace(/-/g, '.*'), 'i') },
+        { name: new RegExp(req.params.id.replace(/-/g, '.*'), 'i') },
+      ],
+    })
+      .populate([
+        { path: 'variants' },
+        { path: 'brand', select: 'id name slug logo' },
+        { path: 'category', select: 'id name slug' },
+        { path: 'subcategory', select: 'id name slug' },
+      ])
+      .lean({ virtuals: true });
+  }
+
   if (!doc) throw ApiError.notFound('product not found');
   return ok(res, { ...doc, id: String(doc._id) });
 });

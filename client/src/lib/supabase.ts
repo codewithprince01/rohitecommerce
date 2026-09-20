@@ -577,4 +577,6 @@ export type ProductVariant = Database['public']['Tables']['product_variants']['R
 export type ProductWithVariants = Product & {
   variants: ProductVariant[];
   brand?: Omit<Brand, 'products'>;
+  category?: Category;
+  subcategory?: Subcategory;
 };

@@ -1453,6 +1453,176 @@ export const mockProducts: ProductWithVariants[] = [
       { id: 'var-52-2', product_id: 'prod-52', quantity: '2 pieces', price: 45, original_price: 55, discount: 18, stock: 100, is_available: true, created_at: new Date().toISOString() }
     ]
   },
+  {
+    id: 'prod-v1',
+    brand_id: 'brand-21',
+    category_id: 'cat-5',
+    subcategory_id: 'subcat-13',
+    name: 'Green Capsicum (Shimla Mirch)',
+    slug: 'green-capsicum',
+    description: 'Crisp and shiny dark green capsicum, farm fresh.',
+    image: 'https://images.unsplash.com/photo-1563565375-f3fdfdbefa83?auto=compress&cs=tinysrgb&w=400',
+    tags: ['fresh', 'salad', 'bestseller'],
+    is_available: true,
+    created_at: new Date().toISOString(),
+    variants: [
+      { id: 'var-v1-1', product_id: 'prod-v1', quantity: '500g', price: 32, original_price: 40, discount: 20, stock: 120, is_available: true, created_at: new Date().toISOString() },
+      { id: 'var-v1-2', product_id: 'prod-v1', quantity: '1kg', price: 60, original_price: 75, discount: 20, stock: 90, is_available: true, created_at: new Date().toISOString() }
+    ]
+  },
+  {
+    id: 'prod-v2',
+    brand_id: 'brand-21',
+    category_id: 'cat-5',
+    subcategory_id: 'subcat-13',
+    name: 'Fresh Orange Carrots (Gajar)',
+    slug: 'fresh-orange-carrots',
+    description: 'Sweet, juicy and crunchy orange carrots.',
+    image: 'https://images.unsplash.com/photo-1598170845058-32b9d6a5da37?auto=compress&cs=tinysrgb&w=400',
+    tags: ['fresh', 'sweet', 'salad'],
+    is_available: true,
+    created_at: new Date().toISOString(),
+    variants: [
+      { id: 'var-v2-1', product_id: 'prod-v2', quantity: '500g', price: 25, original_price: 32, discount: 21, stock: 150, is_available: true, created_at: new Date().toISOString() },
+      { id: 'var-v2-2', product_id: 'prod-v2', quantity: '1kg', price: 46, original_price: 60, discount: 23, stock: 100, is_available: true, created_at: new Date().toISOString() }
+    ]
+  },
+  {
+    id: 'prod-v3',
+    brand_id: 'brand-31',
+    category_id: 'cat-5',
+    subcategory_id: 'subcat-13',
+    name: 'Fresh Green Cucumber (Kheera)',
+    slug: 'fresh-cucumber',
+    description: 'Crispy and hydrating local fresh green cucumbers.',
+    image: 'https://images.unsplash.com/photo-1449300079323-02e209d9d3a6?auto=compress&cs=tinysrgb&w=400',
+    tags: ['fresh', 'salad', 'cooling'],
+    is_available: true,
+    created_at: new Date().toISOString(),
+    variants: [
+      { id: 'var-v3-1', product_id: 'prod-v3', quantity: '500g', price: 20, original_price: 25, discount: 20, stock: 180, is_available: true, created_at: new Date().toISOString() },
+      { id: 'var-v3-2', product_id: 'prod-v3', quantity: '1kg', price: 36, original_price: 48, discount: 25, stock: 120, is_available: true, created_at: new Date().toISOString() }
+    ]
+  },
+  {
+    id: 'prod-v4',
+    brand_id: 'brand-31',
+    category_id: 'cat-5',
+    subcategory_id: 'subcat-13',
+    name: 'Lady Finger (Bhindi)',
+    slug: 'fresh-lady-finger',
+    description: 'Tender and slender fresh green okra/bhindi.',
+    image: 'https://images.unsplash.com/photo-1525607551316-4a8e16d1f9ba?auto=compress&cs=tinysrgb&w=400',
+    tags: ['fresh', 'daily'],
+    is_available: true,
+    created_at: new Date().toISOString(),
+    variants: [
+      { id: 'var-v4-1', product_id: 'prod-v4', quantity: '500g', price: 28, original_price: 36, discount: 22, stock: 140, is_available: true, created_at: new Date().toISOString() },
+      { id: 'var-v4-2', product_id: 'prod-v4', quantity: '1kg', price: 52, original_price: 70, discount: 25, stock: 80, is_available: true, created_at: new Date().toISOString() }
+    ]
+  },
+  {
+    id: 'prod-v5',
+    brand_id: 'brand-21',
+    category_id: 'cat-5',
+    subcategory_id: 'subcat-13',
+    name: 'Spicy Green Chillies (Hari Mirch)',
+    slug: 'green-chillies',
+    description: 'Spicy and fresh pungent green chillies for tadka.',
+    image: 'https://images.unsplash.com/photo-1588252303782-cb80119abd6d?auto=compress&cs=tinysrgb&w=400',
+    tags: ['spicy', 'essential'],
+    is_available: true,
+    created_at: new Date().toISOString(),
+    variants: [
+      { id: 'var-v5-1', product_id: 'prod-v5', quantity: '100g', price: 10, original_price: 15, discount: 33, stock: 250, is_available: true, created_at: new Date().toISOString() },
+      { id: 'var-v5-2', product_id: 'prod-v5', quantity: '250g', price: 22, original_price: 32, discount: 31, stock: 150, is_available: true, created_at: new Date().toISOString() }
+    ]
+  },
+  {
+    id: 'prod-v6',
+    brand_id: 'brand-21',
+    category_id: 'cat-5',
+    subcategory_id: 'subcat-13',
+    name: 'Fresh Ginger (Adrak)',
+    slug: 'fresh-ginger',
+    description: 'Aromatic and spicy root ginger, washed and clean.',
+    image: 'https://images.unsplash.com/photo-1615485290382-441e4d049cb5?auto=compress&cs=tinysrgb&w=400',
+    tags: ['aromatic', 'essential'],
+    is_available: true,
+    created_at: new Date().toISOString(),
+    variants: [
+      { id: 'var-v6-1', product_id: 'prod-v6', quantity: '100g', price: 18, original_price: 24, discount: 25, stock: 200, is_available: true, created_at: new Date().toISOString() },
+      { id: 'var-v6-2', product_id: 'prod-v6', quantity: '250g', price: 42, original_price: 55, discount: 23, stock: 120, is_available: true, created_at: new Date().toISOString() }
+    ]
+  },
+  {
+    id: 'prod-v7',
+    brand_id: 'brand-31',
+    category_id: 'cat-5',
+    subcategory_id: 'subcat-13',
+    name: 'Garlic Bulbs (Desi Lehsun)',
+    slug: 'fresh-garlic',
+    description: 'Pungent whole garlic bulbs with large aromatic cloves.',
+    image: 'https://images.unsplash.com/photo-1540148426945-6cf22a6b2383?auto=compress&cs=tinysrgb&w=400',
+    tags: ['essential', 'cooking'],
+    is_available: true,
+    created_at: new Date().toISOString(),
+    variants: [
+      { id: 'var-v7-1', product_id: 'prod-v7', quantity: '200g', price: 35, original_price: 45, discount: 22, stock: 150, is_available: true, created_at: new Date().toISOString() },
+      { id: 'var-v7-2', product_id: 'prod-v7', quantity: '500g', price: 80, original_price: 100, discount: 20, stock: 90, is_available: true, created_at: new Date().toISOString() }
+    ]
+  },
+  {
+    id: 'prod-v8',
+    brand_id: 'brand-21',
+    category_id: 'cat-5',
+    subcategory_id: 'subcat-13',
+    name: 'Juicy Yellow Lemon (Nimbu)',
+    slug: 'fresh-lemon',
+    description: 'Zesty and juicy thin-skinned yellow lemons.',
+    image: 'https://images.unsplash.com/photo-1533082831833-2a5a755cdd76?auto=compress&cs=tinysrgb&w=400',
+    tags: ['citrus', 'essential'],
+    is_available: true,
+    created_at: new Date().toISOString(),
+    variants: [
+      { id: 'var-v8-1', product_id: 'prod-v8', quantity: '4 pieces', price: 20, original_price: 25, discount: 20, stock: 300, is_available: true, created_at: new Date().toISOString() },
+      { id: 'var-v8-2', product_id: 'prod-v8', quantity: '8 pieces', price: 38, original_price: 48, discount: 20, stock: 200, is_available: true, created_at: new Date().toISOString() }
+    ]
+  },
+  {
+    id: 'prod-v9',
+    brand_id: 'brand-31',
+    category_id: 'cat-5',
+    subcategory_id: 'subcat-13',
+    name: 'Bottle Gourd (Lauki / Ghiya)',
+    slug: 'fresh-bottle-gourd',
+    description: 'Tender, sweet and watery green bottle gourd.',
+    image: 'https://images.pexels.com/photos/5966630/pexels-photo-5966630.jpeg?auto=compress&cs=tinysrgb&w=600',
+    tags: ['healthy', 'light'],
+    is_available: true,
+    created_at: new Date().toISOString(),
+    variants: [
+      { id: 'var-v9-1', product_id: 'prod-v9', quantity: '1 piece (600-800g)', price: 25, original_price: 32, discount: 21, stock: 110, is_available: true, created_at: new Date().toISOString() },
+      { id: 'var-v9-2', product_id: 'prod-v9', quantity: '2 pieces', price: 46, original_price: 60, discount: 23, stock: 70, is_available: true, created_at: new Date().toISOString() }
+    ]
+  },
+  {
+    id: 'prod-v10',
+    brand_id: 'brand-21',
+    category_id: 'cat-5',
+    subcategory_id: 'subcat-13',
+    name: 'Fresh Green Peas (Hari Matar)',
+    slug: 'fresh-green-peas',
+    description: 'Sweet and plump freshly shelled green peas in pod.',
+    image: 'https://images.unsplash.com/photo-1587735243615-c03f25aaff15?auto=compress&cs=tinysrgb&w=400',
+    tags: ['sweet', 'fresh', 'seasonal'],
+    is_available: true,
+    created_at: new Date().toISOString(),
+    variants: [
+      { id: 'var-v10-1', product_id: 'prod-v10', quantity: '500g', price: 40, original_price: 52, discount: 23, stock: 160, is_available: true, created_at: new Date().toISOString() },
+      { id: 'var-v10-2', product_id: 'prod-v10', quantity: '1kg', price: 76, original_price: 100, discount: 24, stock: 95, is_available: true, created_at: new Date().toISOString() }
+    ]
+  },
 
   // Farm Fresh Greens (brand-32, cat-5, subcat-14)
   {

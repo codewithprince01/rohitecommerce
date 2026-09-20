@@ -19,7 +19,8 @@ function AppContent() {
   const { currentPage } = state;
 
   const isProfile = currentPage === 'profile';
-  const showHeader = currentPage !== 'product-detail' && !isProfile;
+  const isProductDetail = currentPage === 'product-detail';
+  const showHeader = !isProfile;
   const showSidebar = !isProfile;
 
   const renderPage = () => {
@@ -61,7 +62,11 @@ function AppContent() {
           showSidebar ? 'lg:ml-64' : 'w-full'
         } ${
           // Mobile: Add top padding for header
-          showHeader ? 'pt-[104px] lg:pt-[73px]' : 'pt-0'
+          isProductDetail
+            ? 'pt-0 lg:pt-[73px]'
+            : showHeader
+            ? 'pt-[104px] lg:pt-[73px]'
+            : 'pt-0'
         } ${
           // Mobile: Add bottom padding for nav
           showSidebar ? 'pb-20 lg:pb-0' : 'pb-0'
