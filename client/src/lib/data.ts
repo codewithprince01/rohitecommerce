@@ -214,6 +214,32 @@ export async function getProductById(id: string): Promise<ProductWithVariants | 
 
 export const getProductBySlug = getProductById;
 
+/**
+ * Keep only the ids that still resolve to a product.
+ *
+ * Saved wishlists live in the browser and outlive the catalog, so an item the
+ * admin deleted would otherwise be counted forever by a badge that the wishlist
+ * page can never fill. Only a definitive 404 drops an id — this **throws** when
+ * the API cannot be reached, so callers keep the list rather than clearing it
+ * over a dropped connection.
+ */
+export async function pruneMissingProductIds(ids: string[]): Promise<string[]> {
+  if (ids.length === 0) return ids;
+
+  // Reachability probe first; a network failure rejects and nothing is pruned.
+  const probe = await fetch(`${API_BASE}/health`);
+  if (!probe.ok) throw new Error(`API health check failed (${probe.status})`);
+
+  const checked = await Promise.all(
+    ids.map(async (id) => {
+      const res = await fetch(`${API_BASE}/products/${encodeURIComponent(id)}`);
+      // Anything other than "definitely gone" keeps the entry.
+      return res.status === 404 ? null : id;
+    })
+  );
+  return checked.filter((id): id is string => id !== null);
+}
+
 /* ----------------------- Admin-configured storefront ---------------------- */
 
 export interface PublicHomeSection {

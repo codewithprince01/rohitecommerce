@@ -285,45 +285,11 @@ export default function CartPage() {
       console.warn('Could not post order to backend:', err);
     });
 
-    // Also store in localStorage so ProfilePage displays this exact order immediately with accurate timestamp
+    // Clear the legacy browser copy of orders; the backend is the record now.
     try {
-      const prevStored = JSON.parse(localStorage.getItem('freshmart_placed_orders') || '[]');
-      const localRecord = {
-        _id: `ord-${Date.now()}`,
-        id: `ord-${Date.now()}`,
-        order_number: orderId,
-        customer_id: 'cust-current',
-        status: 'pending',
-        payment_status: 'cod_pending',
-        payment_method: 'cod',
-        subtotal: cartTotal,
-        discount,
-        delivery_fee: delivery,
-        tax: 0,
-        total,
-        delivery_address: {
-          label: chosenAddress.label,
-          line1: chosenAddress.address,
-          city: 'Sabalgarh',
-          state: 'Madhya Pradesh',
-          pincode: '476229',
-        },
-        delivery_slot: chosenSlot.label,
-        notes: customerNote || undefined,
-        placed_at: now.toISOString(),
-        delivery_eta: '10-15 Mins',
-        items: itemsSnapshot.map((it) => ({
-          _id: `it-${Date.now()}-${Math.random()}`,
-          product_name: it.name,
-          variant_label: it.quantityLabel,
-          unit_price: it.price,
-          quantity: it.quantity,
-          line_total: it.price * it.quantity,
-          image: it.image,
-        })),
-      };
-      localStorage.setItem('freshmart_placed_orders', JSON.stringify([localRecord, ...prevStored.filter((p: any) => p.order_number !== orderId)]));
+      localStorage.removeItem('freshmart_placed_orders');
     } catch {}
+
 
     // 1. Always copy text to clipboard as guaranteed backup
     try {

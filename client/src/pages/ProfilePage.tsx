@@ -291,12 +291,12 @@ export default function ProfilePage() {
         : DEFAULT_AVATAR;
 
     return {
-      name: savedSettings?.name || 'Diya Patel',
-      email: savedSettings?.email || 'diya.patel@example.com',
-      phone: savedSettings?.phone || '9657989989',
-      gender: savedSettings?.gender || 'female',
-      dob: savedSettings?.dob || '1996-08-15',
-      alternatePhone: savedSettings?.alternatePhone || '+91 98112 34567',
+      name: savedSettings?.name || '',
+      email: savedSettings?.email || '',
+      phone: savedSettings?.phone || '',
+      gender: savedSettings?.gender || '',
+      dob: savedSettings?.dob || '',
+      alternatePhone: savedSettings?.alternatePhone || '',
       avatar: av,
     };
   });
@@ -413,46 +413,24 @@ export default function ProfilePage() {
           const toStore = {
             ...(localSettings || {}),
             avatar: resolvedAvatar,
-            name: profileData?.name || localSettings?.name || 'Diya Patel',
-            phone: profileData?.phone || localSettings?.phone || '9657989989',
-            email: profileData?.email || localSettings?.email || 'diya.patel@example.com',
+            name: profileData?.name || localSettings?.name || '',
+            phone: profileData?.phone || localSettings?.phone || '',
+            email: profileData?.email || localSettings?.email || '',
           };
           localStorage.setItem('freshmart_customer_settings', JSON.stringify(toStore));
         } catch (e) {}
       }
-      let localPlacedOrders: OrderData[] = [];
-      try {
-        const stored = localStorage.getItem('freshmart_placed_orders');
-        if (stored) localPlacedOrders = JSON.parse(stored);
-      } catch (e) {}
-
-      // Combine local placed orders with backend orders, prioritizing freshly placed ones
-      const mergedOrders: OrderData[] = [...localPlacedOrders];
-      for (const bo of (ordersData || [])) {
-        if (bo.order_number === 'TESTORD-001') {
-          bo.placed_at = new Date().toISOString();
-        }
-        if (!mergedOrders.some((m) => m.order_number === bo.order_number || (m._id && m._id === bo._id))) {
-          mergedOrders.push(bo);
-        }
-      }
-      const finalOrders = mergedOrders.filter(
-        (o) => o.status !== 'cancelled' && o.status !== 'returned'
+      setOrders(
+        (ordersData || []).filter((o) => o.status !== 'cancelled' && o.status !== 'returned')
       );
-      setOrders(finalOrders);
       setAddresses(addressesData);
       setWallet(walletData);
       setCoupons(couponsData);
       setTickets(ticketsData);
     } catch (err) {
       console.error('Failed to load profile data:', err);
-      let localPlacedOrders: OrderData[] = [];
-      try {
-        const stored = localStorage.getItem('freshmart_placed_orders');
-        if (stored) localPlacedOrders = JSON.parse(stored);
-      } catch (e) {}
-      // API unreachable: show only what this device just placed, never demo orders.
-      setOrders(localPlacedOrders.filter((o) => o.status !== 'cancelled' && o.status !== 'returned'));
+      // API unreachable — show no orders rather than a stale local copy.
+      setOrders([]);
     } finally {
       setLoading(false);
     }
@@ -1449,7 +1427,7 @@ export default function ProfilePage() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <h2 className="text-base font-extrabold text-neutral-900 truncate">
-                    {settingsForm.name || profile?.name || 'Diya Patel'}
+                    {settingsForm.name || profile?.name || 'Your name'}
                   </h2>
                   <div className="flex items-center gap-1.5 text-xs text-neutral-500 mt-0.5">
                     <Phone className="w-3.5 h-3.5 text-neutral-400 shrink-0" />
@@ -1457,7 +1435,7 @@ export default function ProfilePage() {
                   </div>
                   <div className="flex items-center gap-1.5 text-xs text-neutral-400 mt-0.5">
                     <Mail className="w-3.5 h-3.5 text-neutral-400 shrink-0" />
-                    <span className="truncate">{settingsForm.email || profile?.email || 'diya.patel@example.com'}</span>
+                    <span className="truncate">{settingsForm.email || profile?.email || '—'}</span>
                   </div>
                 </div>
                 <button
@@ -1602,10 +1580,10 @@ export default function ProfilePage() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <h2 className="text-sm font-bold text-neutral-900 truncate">
-                    {settingsForm.name || profile?.name || 'Diya Patel'}
+                    {settingsForm.name || profile?.name || 'Your name'}
                   </h2>
                   <p className="text-xs text-neutral-500 truncate">{settingsForm.phone || profile?.phone || '985798989'}</p>
-                  <p className="text-[11px] text-neutral-400 truncate">{settingsForm.email || profile?.email || 'diya.patel@example.com'}</p>
+                  <p className="text-[11px] text-neutral-400 truncate">{settingsForm.email || profile?.email || '—'}</p>
                 </div>
               </div>
 

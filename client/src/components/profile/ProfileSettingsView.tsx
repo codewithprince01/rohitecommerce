@@ -63,14 +63,16 @@ export interface SettingsState {
   alternatePhone: string;
 }
 
+// A brand new shopper starts blank — the form asks for these, it never
+// pre-fills someone else's details.
 const DEFAULT_SETTINGS: SettingsState = {
-  name: 'Diya Patel',
-  email: 'diya.patel@example.com',
-  phone: '+91 96579 89989',
+  name: '',
+  email: '',
+  phone: '',
   avatar: DEFAULT_AVATAR,
-  gender: 'female',
-  dob: '1996-08-15',
-  alternatePhone: '+91 98112 34567',
+  gender: '',
+  dob: '',
+  alternatePhone: '',
 };
 
 interface ProfileSettingsViewProps {
@@ -353,7 +355,7 @@ export default function ProfileSettingsView({
             <div>
               <div className="flex items-center gap-2 flex-wrap">
                 <h1 className="text-xl sm:text-2xl font-black tracking-tight text-emerald-950">
-                  {settings.name || 'Diya Patel'}
+                  {settings.name || 'Your name'}
                 </h1>
                 <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-200/70 text-emerald-900 border border-emerald-300 text-[10px] font-black uppercase tracking-wider">
                   <ShieldCheck className="w-3 h-3 text-emerald-700" />
@@ -414,7 +416,7 @@ export default function ProfileSettingsView({
                 value={settings.name}
                 onChange={(e) => setSettings({ ...settings, name: e.target.value })}
                 className="w-full pl-10 pr-3.5 py-2.5 rounded-xl border border-neutral-200 text-xs font-medium focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-                placeholder="e.g. Diya Patel"
+                placeholder="e.g. your full name"
                 required
               />
             </div>
@@ -461,7 +463,7 @@ export default function ProfileSettingsView({
                 value={settings.email}
                 onChange={(e) => setSettings({ ...settings, email: e.target.value })}
                 className="w-full pl-10 pr-3.5 py-2.5 rounded-xl border border-neutral-200 text-xs font-medium focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-                placeholder="e.g. diya.patel@example.com"
+                placeholder="e.g. you@example.com"
               />
             </div>
             <span className="text-[11px] text-neutral-400 mt-1 block">Used for invoices and order confirmations</span>

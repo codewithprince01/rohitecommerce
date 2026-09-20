@@ -3,8 +3,14 @@ import { Order, OrderItem, OrderStatusHistory } from '../../models/Order.js';
 import { Coupon } from '../../models/Marketing.js';
 import { Product } from '../../models/Catalog.js';
 
-// Helper to find or pick default customer
-async function resolveCustomer(req) {
+/**
+ * Find the shopper this request belongs to.
+ *
+ * Reads pass `create: false` and get `null` when nobody is on file — browsing
+ * the profile page must not write to the database. A record is opened only when
+ * the shopper actually does something (places an order, saves an address).
+ */
+async function resolveCustomer(req, { create = false } = {}) {
   const customerId = req.headers['x-customer-id'] || req.query.customer_id;
   if (customerId) {
     try {
@@ -12,70 +18,28 @@ async function resolveCustomer(req) {
       if (cust) return cust;
     } catch (e) {}
   }
-  // Fall back to the first shopper on file. A brand new store has none, so we
-  // open a blank record rather than inventing a demo identity with a balance.
-  let cust = await Customer.findOne({ is_blocked: false }).sort({ created_at: 1 });
-  if (!cust) {
-    cust = await Customer.create({ name: 'Guest' });
-  }
-  return cust;
+
+  const cust = await Customer.findOne({ is_blocked: false }).sort({ created_at: 1 });
+  if (cust) return cust;
+  return create ? Customer.create({ name: 'Guest' }) : null;
 }
 
 // 1. GET Profile
 export async function getProfile(req, res) {
   try {
     const customer = await resolveCustomer(req);
-
-    // Ensure default addresses exist for realistic experience
-    const addressCount = await Address.countDocuments({ customer_id: customer._id });
-    if (addressCount === 0) {
-      await Address.create([
-        {
-          customer_id: customer._id,
-          label: 'Home',
-          line1: 'Fatehchand colony, ward no 5',
-          line2: 'Near ram mandir chauraha',
-          city: 'Sabalgarh',
-          state: 'Madhya Pradesh',
-          pincode: '476229',
-          is_default: true,
+    if (!customer) {
+      return res.json({
+        success: true,
+        data: {
+          id: null, name: null, email: null, phone: null, avatar: null,
+          gender: null, dob: null, alternate_phone: null, preferences: {},
+          wallet_balance: 0, cashback_earned: 0, is_vip: false, freshpass_expiry: null,
+          notes: null,
+          counts: { saved_addresses: 0, active_orders: 0, available_coupons: 0 },
+          addresses: [],
         },
-        {
-          customer_id: customer._id,
-          label: 'Shop',
-          line1: 'Near Ram Mandir Chauraha, Main Market',
-          line2: 'Ward No 5',
-          city: 'Sabalgarh',
-          state: 'Madhya Pradesh',
-          pincode: '476229',
-          is_default: false,
-        },
-      ]);
-    }
-
-    // Ensure wallet transactions exist
-    const txCount = await WalletTransaction.countDocuments({ customer_id: customer._id });
-    if (txCount === 0) {
-      await WalletTransaction.create([
-        {
-          customer_id: customer._id,
-          type: 'credit',
-          title: 'Welcome Cashback Added',
-          amount: 150,
-          description: 'Bonus credited for creating account',
-          reference_id: 'TXN-WCM-8901',
-          created_at: new Date(Date.now() - 7 * 24 * 3600 * 1000),
-        },
-        {
-          customer_id: customer._id,
-          type: 'credit',
-          title: 'Order Cashback (FM-6902)',
-          amount: 100,
-          description: '10% instant VIP cash on grocery order',
-          reference_id: 'TXN-CBK-9021',
-          created_at: new Date(Date.now() - 2 * 24 * 3600 * 1000),
-        },
-      ]);
+      });
     }
 
     const [addresses, activeOrdersCount, couponsCount] = await Promise.all([
@@ -95,14 +59,14 @@ export async function getProfile(req, res) {
         email: customer.email,
         phone: customer.phone,
         avatar: customer.avatar,
-        gender: customer.gender ?? 'male',
-        dob: customer.dob ?? '1996-08-15',
+        gender: customer.gender ?? null,
+        dob: customer.dob ?? null,
         alternate_phone: customer.alternate_phone,
         preferences: customer.preferences || {},
-        wallet_balance: customer.wallet_balance ?? 250,
-        cashback_earned: customer.cashback_earned ?? 45,
-        is_vip: customer.is_vip ?? true,
-        freshpass_expiry: customer.freshpass_expiry ?? '31 Dec 2026',
+        wallet_balance: customer.wallet_balance ?? 0,
+        cashback_earned: customer.cashback_earned ?? 0,
+        is_vip: customer.is_vip ?? false,
+        freshpass_expiry: customer.freshpass_expiry ?? null,
         notes: customer.notes,
         counts: {
           saved_addresses: addresses.length,
@@ -120,7 +84,7 @@ export async function getProfile(req, res) {
 // 2. UPDATE Profile
 export async function updateProfile(req, res) {
   try {
-    const customer = await resolveCustomer(req);
+    const customer = await resolveCustomer(req, { create: true });
     const {
       name,
       email,
@@ -179,14 +143,11 @@ export async function updateProfile(req, res) {
 export async function getOrders(req, res) {
   try {
     const customer = await resolveCustomer(req);
-    let orders = await Order.find({ customer_id: customer._id })
+    if (!customer) return res.json({ success: true, data: [] });
+
+    const orders = await Order.find({ customer_id: customer._id })
       .sort({ placed_at: -1 })
       .lean();
-
-    // Fallback: If this customer has no orders, fetch recent store orders so UI is lively
-    if (!orders || orders.length === 0) {
-      orders = await Order.find().limit(8).sort({ placed_at: -1 }).lean();
-    }
 
     // Attach items
     const orderIds = orders.map((o) => o._id);
@@ -200,78 +161,28 @@ export async function getOrders(req, res) {
       productMap[p._id.toString()] = p;
     }
 
-    const mockPilots = [
-      {
-        name: 'Ramesh Kumar',
-        phone: '+91 98102 34567',
-        rating: 4.9,
-        trips: 1842,
-        vehicle: 'Hero Electric (HR-26-BK-4091)',
-        photo: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=compress&cs=tinysrgb&w=150',
-      },
-      {
-        name: 'Suresh Verma',
-        phone: '+91 98711 82910',
-        rating: 4.8,
-        trips: 940,
-        vehicle: 'Ather 450X (HR-26-CZ-9102)',
-        photo: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=compress&cs=tinysrgb&w=150',
-      },
-      {
-        name: 'Vikram Singh',
-        phone: '+91 99580 12830',
-        rating: 5.0,
-        trips: 2410,
-        vehicle: 'Ola S1 Pro (DL-3S-AQ-5819)',
-        photo: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=compress&cs=tinysrgb&w=150',
-      },
-    ];
-
-    const fallbackImages = [
-      'https://images.pexels.com/photos/1583884/pexels-photo-1583884.jpeg?auto=compress&cs=tinysrgb&w=200',
-      'https://images.pexels.com/photos/248412/pexels-photo-248412.jpeg?auto=compress&cs=tinysrgb&w=200',
-      'https://images.pexels.com/photos/1458694/pexels-photo-1458694.jpeg?auto=compress&cs=tinysrgb&w=200',
-      'https://images.pexels.com/photos/1132047/pexels-photo-1132047.jpeg?auto=compress&cs=tinysrgb&w=200',
-      'https://images.pexels.com/photos/338713/pexels-photo-338713.jpeg?auto=compress&cs=tinysrgb&w=200',
-    ];
-
     const itemsByOrder = {};
     for (let idx = 0; idx < allItems.length; idx++) {
       const item = allItems[idx];
       const oid = item.order_id.toString();
       if (!itemsByOrder[oid]) itemsByOrder[oid] = [];
       const prod = item.product_id ? productMap[item.product_id.toString()] : null;
-      itemsByOrder[oid].push({
-        ...item,
-        image: prod?.image || fallbackImages[idx % fallbackImages.length],
-      });
+      itemsByOrder[oid].push({ ...item, image: prod?.image ?? null });
     }
 
-    const populatedOrders = orders.map((o, idx) => {
-      const items = itemsByOrder[o._id.toString()] || [];
-      const pilot = mockPilots[idx % mockPilots.length];
-      const isDelivered = o.status === 'delivered';
-      const isLive = ['pending', 'confirmed', 'packed', 'out_for_delivery'].includes(o.status);
-
-      return {
-        ...o,
-        id: o._id,
-        items,
-        delivery_address: o.delivery_address || {
-          label: 'Home',
-          line1: 'Fatehchand colony, ward no 5',
-          line2: 'Near ram mandir chauraha',
-          city: 'Sabalgarh, Morena',
-          state: 'Madhya Pradesh',
-          pincode: '476229',
-        },
-        rider: o.rider || pilot,
-        delivery_eta: o.delivery_eta || (isLive ? '8-10 Mins' : isDelivered ? 'Delivered in 9 mins' : 'Cancelled'),
-        rating: o.rating || (isDelivered ? 5 : null),
-        rating_review: o.rating_review || null,
-        rating_tags: o.rating_tags || ['Fast Delivery', 'Fresh Groceries'],
-      };
-    });
+    // Everything below comes off the order document itself. Anything the store
+    // has not recorded stays null rather than being filled with a plausible guess.
+    const populatedOrders = orders.map((o) => ({
+      ...o,
+      id: o._id,
+      items: itemsByOrder[o._id.toString()] || [],
+      delivery_address: o.delivery_address ?? null,
+      rider: o.rider ?? null,
+      delivery_eta: o.delivery_eta ?? null,
+      rating: o.rating ?? null,
+      rating_review: o.rating_review ?? null,
+      rating_tags: o.rating_tags ?? [],
+    }));
 
     return res.json({ success: true, data: populatedOrders });
   } catch (error) {
@@ -347,7 +258,7 @@ export async function cancelOrder(req, res) {
 export async function reorder(req, res) {
   try {
     const { id } = req.params;
-    const customer = await resolveCustomer(req);
+    const customer = await resolveCustomer(req, { create: true });
 
     const oldOrder = await Order.findById(id);
     if (!oldOrder) {
@@ -375,13 +286,8 @@ export async function reorder(req, res) {
       delivery_fee: deliveryFee,
       tax: 0,
       total,
-      delivery_address: oldOrder.delivery_address || {
-        label: 'Home',
-        line1: 'Fatehchand colony, ward no 5, near ram mandir chauraha',
-        city: 'Sabalgarh',
-        state: 'Madhya Pradesh',
-        pincode: '476229',
-      },
+      // Reorders reuse the original delivery address, never a stand-in one.
+      delivery_address: oldOrder.delivery_address ?? null,
       placed_at: new Date(),
     });
 
@@ -421,6 +327,8 @@ export async function reorder(req, res) {
 export async function getAddresses(req, res) {
   try {
     const customer = await resolveCustomer(req);
+    if (!customer) return res.json({ success: true, data: [] });
+
     const addresses = await Address.find({ customer_id: customer._id })
       .sort({ is_default: -1, created_at: -1 })
       .lean();
@@ -433,7 +341,7 @@ export async function getAddresses(req, res) {
 // 7. ADD Address
 export async function addAddress(req, res) {
   try {
-    const customer = await resolveCustomer(req);
+    const customer = await resolveCustomer(req, { create: true });
     const {
       label,
       receiver_name,
@@ -484,7 +392,7 @@ export async function addAddress(req, res) {
 // 8. UPDATE Address
 export async function updateAddress(req, res) {
   try {
-    const customer = await resolveCustomer(req);
+    const customer = await resolveCustomer(req, { create: true });
     const { id } = req.params;
     const {
       label,
@@ -537,7 +445,7 @@ export async function updateAddress(req, res) {
 // 9. DELETE Address
 export async function deleteAddress(req, res) {
   try {
-    const customer = await resolveCustomer(req);
+    const customer = await resolveCustomer(req, { create: true });
     const { id } = req.params;
 
     const removed = await Address.findOneAndDelete({ _id: id, customer_id: customer._id });
@@ -554,7 +462,7 @@ export async function deleteAddress(req, res) {
 // 10. SET DEFAULT Address
 export async function setDefaultAddress(req, res) {
   try {
-    const customer = await resolveCustomer(req);
+    const customer = await resolveCustomer(req, { create: true });
     const { id } = req.params;
 
     await Address.updateMany({ customer_id: customer._id }, { is_default: false });
@@ -578,6 +486,10 @@ export async function setDefaultAddress(req, res) {
 export async function getWallet(req, res) {
   try {
     const customer = await resolveCustomer(req);
+    if (!customer) {
+      return res.json({ success: true, data: { balance: 0, cashback_earned: 0, transactions: [] } });
+    }
+
     const transactions = await WalletTransaction.find({ customer_id: customer._id })
       .sort({ created_at: -1 })
       .lean();
@@ -585,8 +497,8 @@ export async function getWallet(req, res) {
     return res.json({
       success: true,
       data: {
-        balance: customer.wallet_balance ?? 250,
-        cashback_earned: customer.cashback_earned ?? 45,
+        balance: customer.wallet_balance ?? 0,
+        cashback_earned: customer.cashback_earned ?? 0,
         transactions,
       },
     });
@@ -598,7 +510,7 @@ export async function getWallet(req, res) {
 // 12. TOPUP Wallet
 export async function topupWallet(req, res) {
   try {
-    const customer = await resolveCustomer(req);
+    const customer = await resolveCustomer(req, { create: true });
     const amount = Number(req.body.amount);
 
     if (!amount || amount <= 0) {
@@ -634,36 +546,7 @@ export async function topupWallet(req, res) {
 // 13. GET Coupons
 export async function getCoupons(_req, res) {
   try {
-    let coupons = await Coupon.find({ is_active: true }).lean();
-    if (!coupons || coupons.length === 0) {
-      coupons = await Coupon.create([
-        {
-          code: 'FRESH100',
-          description: 'Instant ₹100 off on fresh fruits & vegetables',
-          type: 'fixed',
-          value: 100,
-          min_order: 399,
-          is_active: true,
-        },
-        {
-          code: 'WELCOME10',
-          description: '10% off on your grocery order',
-          type: 'percent',
-          value: 10,
-          min_order: 199,
-          max_discount: 100,
-          is_active: true,
-        },
-        {
-          code: 'SUPERPASS',
-          description: 'Flat ₹50 off + Free Priority Instant Delivery',
-          type: 'fixed',
-          value: 50,
-          min_order: 299,
-          is_active: true,
-        },
-      ]);
-    }
+    const coupons = await Coupon.find({ is_active: true }).lean();
     return res.json({ success: true, data: coupons });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
@@ -719,36 +602,11 @@ export async function applyCoupon(req, res) {
 export async function getSupport(req, res) {
   try {
     const customer = await resolveCustomer(req);
-    let tickets = await SupportTicket.find({ customer_id: customer._id })
+    if (!customer) return res.json({ success: true, data: [] });
+
+    const tickets = await SupportTicket.find({ customer_id: customer._id })
       .sort({ created_at: -1 })
       .lean();
-
-    if (!tickets || tickets.length === 0) {
-      const sample = await SupportTicket.create({
-        customer_id: customer._id,
-        ticket_number: 'AG-TKT-82910',
-        category: 'Delivery Query',
-        subject: 'Estimated delivery slot enquiry',
-        message: 'Hi Agrawal General & Provisional Store, can I schedule my order delivery for evening slots?',
-        status: 'resolved',
-        priority: 'low',
-        responses: [
-          {
-            sender: 'customer',
-            message: 'Hi Agrawal General & Provisional Store, can I schedule my order delivery for evening slots?',
-            created_at: new Date(Date.now() - 24 * 3600 * 1000),
-          },
-          {
-            sender: 'agent',
-            message:
-              'Hello! Yes, Agrawal General & Provisional Store instant delivery is active. You can also pick future slots at checkout.',
-            created_at: new Date(Date.now() - 23 * 3600 * 1000),
-          },
-        ],
-        created_at: new Date(Date.now() - 24 * 3600 * 1000),
-      });
-      tickets = [sample.toObject()];
-    }
 
     return res.json({ success: true, data: tickets });
   } catch (error) {
@@ -759,7 +617,7 @@ export async function getSupport(req, res) {
 // 16. CREATE Support Ticket
 export async function createSupportTicket(req, res) {
   try {
-    const customer = await resolveCustomer(req);
+    const customer = await resolveCustomer(req, { create: true });
     const { category, subject, message, order_number } = req.body;
 
     if (!subject || !message) {
@@ -861,7 +719,7 @@ export async function logout(_req, res) {
 // 19. PLACE ORDER (Customer Checkout)
 export async function placeOrder(req, res) {
   try {
-    const customer = await resolveCustomer(req);
+    const customer = await resolveCustomer(req, { create: true });
     const {
       order_number,
       items = [],

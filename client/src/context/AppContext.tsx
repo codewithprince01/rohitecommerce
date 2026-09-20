@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useReducer, ReactNode, useEffect } from 'react';
 import type { ProductWithVariants, ProductVariant } from '../lib/supabase';
+import { pruneMissingProductIds } from '../lib/data';
 
 export interface CartItem {
   product: ProductWithVariants;
@@ -58,6 +59,7 @@ type AppAction =
   | { type: 'TOGGLE_WISHLIST'; productId: string }
   | { type: 'REMOVE_FROM_WISHLIST'; productId: string }
   | { type: 'CLEAR_WISHLIST' }
+  | { type: 'SET_WISHLIST'; ids: string[] }
   | { type: 'SET_LOCATION'; location: DeliveryLocation }
   | { type: 'SYNC_URL'; state: Omit<AppState, 'cart' | 'wishlist' | 'deliveryLocation'> };
 
@@ -303,6 +305,13 @@ function appReducer(state: AppState, action: AppAction): AppState {
       return { ...state, wishlist: nextWishlist };
     }
 
+    case 'SET_WISHLIST': {
+      try {
+        localStorage.setItem('freshmart_wishlist', JSON.stringify(action.ids));
+      } catch (e) {}
+      return { ...state, wishlist: action.ids };
+    }
+
     case 'CLEAR_WISHLIST': {
       try {
         localStorage.removeItem('freshmart_wishlist');
@@ -366,6 +375,26 @@ const AppContext = createContext<AppContextType | null>(null);
 export function AppProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(appReducer, initialState);
 
+  // Saved wishlist ids outlive the catalog. Drop the ones whose product is gone
+  // so the badge count always matches what the wishlist page can actually show.
+  useEffect(() => {
+    const saved = getInitialWishlist();
+    if (saved.length === 0) return;
+    let active = true;
+    pruneMissingProductIds(saved)
+      .then((kept) => {
+        if (active && kept.length !== saved.length) {
+          dispatch({ type: 'SET_WISHLIST', ids: kept });
+        }
+      })
+      .catch(() => {
+        // API unreachable — leave the saved list untouched.
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
   const cartTotal = state.cart.reduce((sum, i) => sum + i.variant.price * i.quantity, 0);
   const cartCount = state.cart.reduce((sum, i) => sum + i.quantity, 0);
   const wishlistCount = state.wishlist.length;
@@ -389,6 +418,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const setDeliveryLocation = (location: DeliveryLocation) => {
     dispatch({ type: 'SET_LOCATION', location });
   };
+
+  // Older builds mirrored placed orders into localStorage. The backend is the
+  // record of truth now, so drop that copy — otherwise orders deleted from the
+  // database keep reappearing on this device.
+  useEffect(() => {
+    try {
+      localStorage.removeItem('freshmart_placed_orders');
+    } catch {}
+  }, []);
 
   useEffect(() => {
     const { currentPage, profileTab, selectedCategorySlug, selectedSubcategorySlug, selectedBrandSlug, selectedProductId, searchQuery } = state;
