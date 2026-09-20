@@ -38,7 +38,7 @@ const DELIVERY_SLOTS = [
   { id: 'tomorrow', label: 'Tomorrow Morning', sub: '8:00 AM - 10:00 AM', badge: 'Scheduled' },
 ];
 
-type CheckoutStep = 'cart' | 'address' | 'delivery' | 'payment' | 'success';
+type CheckoutStep = 'cart' | 'address' | 'payment' | 'success';
 
 interface AddressItem {
   id: string;
@@ -475,14 +475,14 @@ export default function CartPage() {
         <div className="flex items-center gap-3">
           <button
             type="button"
-            onClick={() => (step === 'cart' ? navigate('home') : setStep('cart'))}
+            onClick={() => (step === 'cart' ? navigate('home') : step === 'payment' ? setStep('address') : setStep('cart'))}
             className="w-8 h-8 rounded-xl bg-white border border-neutral-200 flex items-center justify-center hover:bg-neutral-50 transition-colors shadow-2xs"
           >
             <ArrowLeft size={16} className="text-neutral-700" />
           </button>
           <div>
             <h1 className="text-base sm:text-lg font-black text-neutral-900 tracking-tight leading-none">
-              {step === 'cart' ? 'My Cart' : step === 'address' ? 'Delivery Address' : step === 'delivery' ? 'Delivery Slot' : 'Confirm Order'}
+              {step === 'cart' ? 'My Cart' : step === 'address' ? 'Delivery Address' : 'Confirm Order (COD)'}
             </h1>
             <p className="text-[11px] text-neutral-500 font-medium mt-0.5">
               {step === 'cart' ? `${cartCount} items in basket` : 'Cash on Delivery guaranteed'}
@@ -492,12 +492,12 @@ export default function CartPage() {
 
         {/* Compact Stepper Pills */}
         <div className="hidden sm:flex items-center gap-1.5 bg-neutral-100 p-1 rounded-xl">
-          {(['cart', 'address', 'delivery', 'payment'] as CheckoutStep[]).map((s, i) => {
-            const stepsOrder = ['cart', 'address', 'delivery', 'payment'];
+          {(['cart', 'address', 'payment'] as CheckoutStep[]).map((s, i) => {
+            const stepsOrder = ['cart', 'address', 'payment'];
             const currentIndex = stepsOrder.indexOf(step);
             const isActive = currentIndex === i;
             const isCompleted = currentIndex > i;
-            const labels = ['Cart', 'Address', 'Slot', 'COD'];
+            const labels = ['Cart', 'Address', 'COD'];
 
             return (
               <button
@@ -743,47 +743,7 @@ export default function CartPage() {
             </div>
           )}
 
-          {/* ──────────────────────────────────
-              STEP 3: DELIVERY SLOT
-          ────────────────────────────────── */}
-          {step === 'delivery' && (
-            <div className="space-y-3">
-              <h3 className="text-xs sm:text-sm font-bold text-neutral-900 px-0.5">
-                Choose Preferred Delivery Slot
-              </h3>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                {DELIVERY_SLOTS.map((slot) => {
-                  const isSelected = selectedSlot === slot.id;
-                  return (
-                    <button
-                      key={slot.id}
-                      type="button"
-                      onClick={() => setSelectedSlot(slot.id)}
-                      className={`bg-white rounded-xl p-3.5 border text-left flex items-center justify-between transition-all ${
-                        isSelected
-                          ? 'border-primary-600 bg-primary-50/15 shadow-xs'
-                          : 'border-neutral-200/80 hover:border-neutral-300'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2.5">
-                        <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${
-                          isSelected ? 'bg-primary-100 text-primary-700' : 'bg-neutral-100 text-neutral-500'
-                        }`}>
-                          <Clock size={16} />
-                        </div>
-                        <div>
-                          <p className="text-xs font-bold text-neutral-900">{slot.label}</p>
-                          <p className="text-[10px] text-neutral-400">{slot.sub}</p>
-                        </div>
-                      </div>
-                      {isSelected && <CheckCircle2 size={16} className="text-primary-600" />}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
 
           {/* ──────────────────────────────────
               STEP 4: PAYMENT (100% COD)
@@ -863,8 +823,7 @@ export default function CartPage() {
               type="button"
               onClick={() => {
                 if (step === 'cart') setStep('address');
-                else if (step === 'address') setStep('delivery');
-                else if (step === 'delivery') setStep('payment');
+                else if (step === 'address') setStep('payment');
                 else handlePlaceOrder();
               }}
               className={`w-full py-3 px-4 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-2 active:scale-95 transition-all shadow-xs ${
@@ -879,11 +838,6 @@ export default function CartPage() {
                   <ChevronRight size={15} />
                 </>
               ) : step === 'address' ? (
-                <>
-                  <span>Select Slot</span>
-                  <ChevronRight size={15} />
-                </>
-              ) : step === 'delivery' ? (
                 <>
                   <span>Proceed to COD</span>
                   <ChevronRight size={15} />
@@ -911,8 +865,7 @@ export default function CartPage() {
             type="button"
             onClick={() => {
               if (step === 'cart') setStep('address');
-              else if (step === 'address') setStep('delivery');
-              else if (step === 'delivery') setStep('payment');
+              else if (step === 'address') setStep('payment');
               else handlePlaceOrder();
             }}
             className={`flex-1 py-2.5 px-4 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 active:scale-95 transition-all shadow-xs ${
@@ -928,12 +881,7 @@ export default function CartPage() {
               </>
             ) : step === 'address' ? (
               <>
-                <span>Select Slot</span>
-                <ChevronRight size={14} />
-              </>
-            ) : step === 'delivery' ? (
-              <>
-                <span>Review Order</span>
+                <span>Proceed to COD</span>
                 <ChevronRight size={14} />
               </>
             ) : (
