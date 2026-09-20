@@ -9,7 +9,7 @@
     "dev:server": "npm --prefix server run dev",
     "build:client": "npm --prefix client run build",
     "start:server": "npm --prefix server start",
-    "seed": "npm --prefix server run seed",
-    "seed:fresh": "npm --prefix server run seed:fresh"
+    "reset": "npm --prefix server run reset",
+    "seed:admin": "npm --prefix server run seed:admin"
   }
 }
