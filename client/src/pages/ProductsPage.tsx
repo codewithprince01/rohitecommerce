@@ -205,11 +205,11 @@ export default function ProductsPage() {
               <p className="text-neutral-500 text-sm font-medium">No products available</p>
             </div>
           ) : (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3 lg:gap-4">
-              {sortedProducts.map(p => (
-                <ProductCard key={p.id} product={p} />
-              ))}
-            </div>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-2.5 sm:gap-3 lg:gap-4">
+                {sortedProducts.map(p => (
+                  <ProductCard key={p.id} product={p} className="w-full" />
+                ))}
+              </div>
           )}
         </div>
       </div>

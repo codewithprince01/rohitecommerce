@@ -78,9 +78,9 @@ export default function SearchPage() {
                 <p className="text-neutral-400 text-sm">Try a different search term</p>
               </div>
             ) : (
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3 lg:gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-2.5 sm:gap-3 lg:gap-4">
                 {products.map(p => (
-                  <ProductCard key={p.id} product={p} />
+                  <ProductCard key={p.id} product={p} className="w-full" />
                 ))}
               </div>
             )}

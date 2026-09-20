@@ -2570,7 +2570,7 @@ export default function ProfilePage() {
                         },
                         {
                           q: 'How do refunds work on cancelled orders?',
-                          a: 'Cancelled orders are automatically refunded to your Fresh Cash wallet instantly, or returned to your original payment method (UPI / Card) within 2-4 banking hours.',
+                          a: 'Since all orders are Cash on Delivery, no payment is charged online. When an order is cancelled, you do not need to pay anything.',
                         },
                       ].map((item, idx) => (
                         <div key={idx} className="py-2.5">

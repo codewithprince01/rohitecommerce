@@ -27,12 +27,6 @@ export default function Header() {
     setSearch('');
   };
 
-  const navLinks: { label: string; page: PageType }[] = [
-    { label: 'Home', page: 'home' },
-    { label: 'Categories', page: 'categories' },
-    { label: 'Offers & Deals', page: 'offers' },
-  ];
-
   return (
     <>
       <header
@@ -44,24 +38,7 @@ export default function Header() {
         <div className="hidden lg:block">
           <div className="max-w-7xl mx-auto px-6">
             {/* Top bar */}
-            <div className="flex items-center justify-between py-4 border-b border-neutral-100">
-              <div className="flex items-center gap-8">
-                <div className="flex items-center gap-6">
-                  {navLinks.map((link) => (
-                    <button
-                      key={link.label}
-                      onClick={() => navigate(link.page)}
-                      className={`text-sm font-medium transition-colors ${
-                        state.currentPage === link.page
-                          ? 'text-primary-600 font-bold'
-                          : 'text-neutral-600 hover:text-primary-600'
-                      }`}
-                    >
-                      {link.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
+            <div className="flex items-center justify-between py-3.5 border-b border-neutral-100 gap-6">
 
               {/* Search */}
               <div className="flex-1 max-w-lg mx-8">

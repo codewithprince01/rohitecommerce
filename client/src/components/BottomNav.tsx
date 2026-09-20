@@ -1,5 +1,5 @@
 import React from 'react';
-import { Home, Grid3X3, Search, ShoppingCart, User, Leaf, Tag, Heart } from 'lucide-react';
+import { Home, Grid3X3, ShoppingCart, User, Leaf, Tag, Heart } from 'lucide-react';
 import { useApp, PageType } from '../context/AppContext';
 
 interface NavItem {
@@ -14,7 +14,6 @@ const desktopTabs: NavItem[] = [
   { id: 'categories', label: 'Categories', icon: Grid3X3 },
   { id: 'offers', label: 'Offers & Deals', icon: Tag, badge: 'HOT' },
   { id: 'wishlist', label: 'Saved Wishlist', icon: Heart },
-  { id: 'search', label: 'Search', icon: Search },
   { id: 'cart', label: 'Cart', icon: ShoppingCart },
   { id: 'profile', label: 'Profile', icon: User },
 ];

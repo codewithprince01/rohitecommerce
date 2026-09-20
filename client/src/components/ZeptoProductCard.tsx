@@ -7,9 +7,10 @@ import type { ProductWithVariants, ProductVariant } from '../lib/supabase';
 interface ZeptoProductCardProps {
   item?: ZeptoProductItem;
   product?: ProductWithVariants;
+  className?: string;
 }
 
-export default function ZeptoProductCard({ item, product }: ZeptoProductCardProps) {
+export default function ZeptoProductCard({ item, product, className = '' }: ZeptoProductCardProps) {
   const {
     cart,
     addToCart,
@@ -80,7 +81,9 @@ export default function ZeptoProductCard({ item, product }: ZeptoProductCardProp
   return (
     <div
       onClick={() => openProduct(id)}
-      className="w-[140px] sm:w-[152px] md:w-[162px] flex-shrink-0 bg-white rounded-2xl border border-neutral-200/80 hover:border-emerald-300 flex flex-col justify-between shadow-[0_2px_10px_rgba(0,0,0,0.04)] hover:shadow-xl transition-all duration-300 cursor-pointer group select-none relative overflow-hidden"
+      className={`bg-white rounded-2xl border border-neutral-200/80 hover:border-emerald-300 flex flex-col justify-between shadow-[0_2px_10px_rgba(0,0,0,0.04)] hover:shadow-xl transition-all duration-300 cursor-pointer group select-none relative overflow-hidden ${
+        className || 'w-[140px] sm:w-[152px] md:w-[162px] flex-shrink-0'
+      }`}
     >
       <div>
         {/* Product Image Area - Image goes flush to the top with rounded corners */}
