@@ -1,21 +1,17 @@
 import React from 'react';
-import { Star, Plus, Minus, Heart } from 'lucide-react';
+import { Plus, Minus, Heart, ImageOff } from 'lucide-react';
 import { useApp } from '../context/AppContext';
-import { type ZeptoProductItem, convertToProductWithVariants } from '../data/homeZeptoData';
 import type { ProductWithVariants, ProductVariant } from '../lib/supabase';
 
 interface ZeptoProductCardProps {
-  item?: ZeptoProductItem;
-  product?: ProductWithVariants;
+  product: ProductWithVariants;
   className?: string;
   removeFromWishlistOnAdd?: boolean;
 }
 
 export default function ZeptoProductCard({
-  item,
   product,
   className = '',
-  removeFromWishlistOnAdd = false,
 }: ZeptoProductCardProps) {
   const {
     cart,
@@ -28,61 +24,39 @@ export default function ZeptoProductCard({
     isInWishlist,
   } = useApp();
 
-  const productObj: ProductWithVariants = product
-    ? product
-    : item
-    ? convertToProductWithVariants(item)
-    : ({} as ProductWithVariants);
+  // The cheapest pack is what the card advertises. A product with no packs has
+  // no price to show and cannot be added to the cart — the admin has not
+  // finished setting it up, and inventing a price would mislead the shopper.
+  const variant: ProductVariant | undefined = product.variants?.length
+    ? [...product.variants].sort((a, b) => a.price - b.price)[0]
+    : undefined;
 
-  const variant: ProductVariant = productObj.variants?.[0] || {
-    id: `${productObj.id}-v0`,
-    product_id: productObj.id,
-    quantity: '1 pack',
-    price: 40,
-    original_price: 50,
-    discount: 10,
-    stock: 50,
-    is_available: true,
-    created_at: new Date().toISOString(),
-  };
-
-  const id = productObj.id;
-  const name = productObj.name;
-  const image = productObj.image || 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=compress&cs=tinysrgb&w=300';
-  const price = variant.price;
-  const originalPrice = variant.original_price || price;
+  const id = product.id;
+  const price = variant?.price ?? 0;
+  const originalPrice = variant?.original_price ?? price;
   const discountAmount = originalPrice > price ? originalPrice - price : 0;
-  const weight = variant.quantity || '1 pack';
-  const rating = item?.rating || 4.7;
-  const reviews = item?.reviews || '1.8k';
+  const isFav = isInWishlist(id) || (Boolean(product.slug) && isInWishlist(product.slug));
 
-  const isFav = isInWishlist(id) || (Boolean(productObj.slug) && isInWishlist(productObj.slug));
-
-  // Find if item is in cart
-  const cartItem = cart.find((c) => c.product.id === id);
-  const quantity = cartItem?.quantity || 0;
+  const cartItem = variant ? cart.find((c) => c.product.id === id && c.variant.id === variant.id) : undefined;
+  const quantity = cartItem?.quantity ?? 0;
 
   const handleAdd = (e: React.MouseEvent) => {
     e.stopPropagation();
-    addToCart(productObj, variant);
+    if (variant) addToCart(product, variant);
   };
 
   const handleIncrement = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (cartItem) {
-      updateCartQuantity(id, variant.id, quantity + 1);
-    } else {
-      addToCart(productObj, variant);
-    }
+    if (!variant) return;
+    if (cartItem) updateCartQuantity(id, variant.id, quantity + 1);
+    else addToCart(product, variant);
   };
 
   const handleDecrement = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (quantity <= 1) {
-      removeFromCart(id, variant.id);
-    } else {
-      updateCartQuantity(id, variant.id, quantity - 1);
-    }
+    if (!variant) return;
+    if (quantity <= 1) removeFromCart(id, variant.id);
+    else updateCartQuantity(id, variant.id, quantity - 1);
   };
 
   return (
@@ -93,23 +67,28 @@ export default function ZeptoProductCard({
       }`}
     >
       <div>
-        {/* Product Image Area */}
-        <div className="relative w-full h-24 sm:h-28 bg-white overflow-hidden">
-          <img
-            src={image}
-            alt={name}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-            loading="lazy"
-          />
+        {/* Product image — a neutral tile when the admin has not set one yet */}
+        <div className="relative w-full h-24 sm:h-28 bg-neutral-50 overflow-hidden">
+          {product.image ? (
+            <img
+              src={product.image}
+              alt={product.name}
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+              loading="lazy"
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center">
+              <ImageOff size={20} className="text-neutral-300" />
+            </div>
+          )}
 
-          {/* Wishlist Heart Button at Top-Right */}
           <button
             type="button"
             onClick={(e) => {
               e.stopPropagation();
               if (isFav) {
                 removeFromWishlist(id);
-                if (productObj.slug) removeFromWishlist(productObj.slug);
+                if (product.slug) removeFromWishlist(product.slug);
               } else {
                 toggleWishlist(id);
               }
@@ -123,75 +102,82 @@ export default function ZeptoProductCard({
             />
           </button>
 
-          {/* ADD Button or Counter overlay at Bottom-Right of Image */}
-          <div className="absolute bottom-1 right-1 z-10">
-            {quantity === 0 ? (
-              <button
-                type="button"
-                onClick={handleAdd}
-                className="bg-white hover:bg-primary-600 text-primary-600 hover:text-white border-2 border-primary-500 font-black text-[10.5px] px-2 py-0.5 rounded-lg shadow-sm active:scale-95 transition-all flex items-center justify-center leading-tight"
-              >
-                ADD
-              </button>
-            ) : (
-              <div className="bg-primary-600 text-white text-[10.5px] font-bold px-1.5 py-0.5 rounded-lg shadow-sm flex items-center gap-1.5">
+          {variant && (
+            <div className="absolute bottom-1 right-1 z-10">
+              {quantity === 0 ? (
                 <button
                   type="button"
-                  onClick={handleDecrement}
-                  className="w-3 h-3 flex items-center justify-center hover:opacity-80 active:scale-90"
+                  onClick={handleAdd}
+                  className="bg-white hover:bg-primary-600 text-primary-600 hover:text-white border-2 border-primary-500 font-black text-[10.5px] px-2 py-0.5 rounded-lg shadow-sm active:scale-95 transition-all flex items-center justify-center leading-tight"
                 >
-                  <Minus size={9} className="stroke-[3]" />
+                  ADD
                 </button>
-                <span className="min-w-[8px] text-center font-black text-[10.5px]">{quantity}</span>
-                <button
-                  type="button"
-                  onClick={handleIncrement}
-                  className="w-3 h-3 flex items-center justify-center hover:opacity-80 active:scale-90"
-                >
-                  <Plus size={9} className="stroke-[3]" />
-                </button>
-              </div>
-            )}
-          </div>
+              ) : (
+                <div className="bg-primary-600 text-white text-[10.5px] font-bold px-1.5 py-0.5 rounded-lg shadow-sm flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={handleDecrement}
+                    className="w-3 h-3 flex items-center justify-center hover:opacity-80 active:scale-90"
+                  >
+                    <Minus size={9} className="stroke-[3]" />
+                  </button>
+                  <span className="min-w-[8px] text-center font-black text-[10.5px]">{quantity}</span>
+                  <button
+                    type="button"
+                    onClick={handleIncrement}
+                    className="w-3 h-3 flex items-center justify-center hover:opacity-80 active:scale-90"
+                  >
+                    <Plus size={9} className="stroke-[3]" />
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
-        {/* Content Section below Image */}
         <div className="p-2 pt-1">
-          {/* Pricing & Discount */}
-          <div className="flex items-baseline gap-1">
-            <span className="bg-[#15803D] text-white text-[10.5px] font-black px-1.5 py-0.5 rounded-[4px] leading-tight">
-              ₹{price}
+          {variant ? (
+            <>
+              <div className="flex items-baseline gap-1">
+                <span className="bg-[#15803D] text-white text-[10.5px] font-black px-1.5 py-0.5 rounded-[4px] leading-tight">
+                  ₹{price}
+                </span>
+                {originalPrice > price && (
+                  <span className="text-[9.5px] text-neutral-400 line-through font-medium leading-none">
+                    ₹{originalPrice}
+                  </span>
+                )}
+              </div>
+              {discountAmount > 0 && (
+                <p className="text-[9px] text-[#15803D] font-bold mt-0.5 leading-none">
+                  ₹{discountAmount} OFF
+                </p>
+              )}
+            </>
+          ) : (
+            <span className="inline-block text-[9.5px] font-bold text-neutral-500 bg-neutral-100 px-1.5 py-0.5 rounded-[4px] leading-tight">
+              Price coming soon
             </span>
-            {originalPrice > price && (
-              <span className="text-[9.5px] text-neutral-400 line-through font-medium leading-none">
-                ₹{originalPrice}
-              </span>
-            )}
-          </div>
-          {discountAmount > 0 && (
-            <p className="text-[9px] text-[#15803D] font-bold mt-0.5 leading-none">
-              ₹{discountAmount} OFF
-            </p>
           )}
 
-          {/* Title */}
           <h3 className="text-[11px] sm:text-[11.5px] font-semibold text-neutral-800 line-clamp-2 leading-tight min-h-[26px] mt-0.5 group-hover:text-primary-600 transition-colors">
-            {name}
+            {product.name}
           </h3>
 
-          {/* Pack Size / Weight */}
           <p className="text-[9.5px] text-neutral-500 font-normal mt-0.5 leading-tight">
-            {weight}
+            {variant?.quantity ?? '—'}
           </p>
         </div>
       </div>
 
-      {/* Rating Footer */}
+      {/* Stock line — real inventory, in place of the old fabricated rating */}
       <div className="px-2 pb-1.5">
-        <div className="flex items-center gap-1 text-[9px] text-neutral-600 font-medium pt-1 border-t border-neutral-100">
-          <Star size={8.5} className="fill-[#15803D] text-[#15803D]" />
-          <span className="font-bold text-neutral-800">{rating}</span>
-          <span className="text-neutral-400">({reviews})</span>
+        <div className="flex items-center gap-1 text-[9px] font-medium pt-1 border-t border-neutral-100">
+          {variant && variant.stock > 0 ? (
+            <span className="text-neutral-500">In stock</span>
+          ) : (
+            <span className="text-rose-500 font-semibold">Out of stock</span>
+          )}
         </div>
       </div>
     </div>

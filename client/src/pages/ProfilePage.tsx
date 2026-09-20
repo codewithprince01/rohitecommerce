@@ -70,6 +70,7 @@ import {
   Zap,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
+import SafeImage from '../components/SafeImage';
 import type { ProfileTabType } from '../context/AppContext';
 import type { ProductWithVariants, ProductVariant } from '../lib/supabase';
 import {
@@ -151,278 +152,6 @@ const DELIVERY_INSTRUCTION_OPTIONS = [
   'Beware of pets 🐕',
 ];
 
-const FALLBACK_ORDERS: OrderData[] = [
-  {
-    _id: 'ord-active-1',
-    id: 'ord-active-1',
-    order_number: 'FM-942810',
-    customer_id: 'cust-demo',
-    status: 'out_for_delivery',
-    payment_status: 'cod_pending',
-    payment_method: 'cod',
-    subtotal: 211,
-    discount: 0,
-    delivery_fee: 0,
-    tax: 0,
-    total: 211,
-    delivery_address: {
-      label: 'Home',
-      line1: 'Fatehchand colony, ward no 5',
-      line2: 'Near ram mandir chauraha',
-      city: 'Sabalgarh, Morena',
-      state: 'Madhya Pradesh',
-      pincode: '476229',
-    },
-    notes: 'Leave at door 🚪',
-    placed_at: new Date(Date.now() - 18 * 60 * 1000).toISOString(),
-    delivery_eta: '6-8 Mins',
-    rider: {
-      name: 'Ramesh Kumar',
-      phone: '+91 98102 34567',
-      rating: 4.9,
-      trips: 1842,
-      vehicle: 'Hero Electric Nyx (HR-26-BK-4091)',
-      photo: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=compress&cs=tinysrgb&w=150',
-    },
-    items: [
-      {
-        _id: 'item-1-1',
-        order_id: 'ord-active-1',
-        product_id: 'p-milk-1',
-        variant_id: 'v-milk-1',
-        product_name: 'Amul Taaza Fresh Toned Milk',
-        variant_label: '1 L Pouch',
-        unit_price: 54,
-        quantity: 2,
-        line_total: 108,
-        image: 'https://images.pexels.com/photos/248412/pexels-photo-248412.jpeg?auto=compress&cs=tinysrgb&w=200',
-      },
-      {
-        _id: 'item-1-2',
-        order_id: 'ord-active-1',
-        product_id: 'p-banana-1',
-        variant_id: 'v-banana-1',
-        product_name: 'Fresh Robusta Cavendish Banana',
-        variant_label: 'Pack of 6 (approx 750g)',
-        unit_price: 48,
-        quantity: 1,
-        line_total: 48,
-        image: 'https://images.pexels.com/photos/1093038/pexels-photo-1093038.jpeg?auto=compress&cs=tinysrgb&w=200',
-      },
-      {
-        _id: 'item-1-3',
-        order_id: 'ord-active-1',
-        product_id: 'p-bread-1',
-        variant_id: 'v-bread-1',
-        product_name: 'The Health Factory Zero Maida Brown Bread',
-        variant_label: '400 g Pack',
-        unit_price: 55,
-        quantity: 1,
-        line_total: 55,
-        image: 'https://images.pexels.com/photos/1775043/pexels-photo-1775043.jpeg?auto=compress&cs=tinysrgb&w=200',
-      },
-    ],
-  },
-  {
-    _id: 'ord-active-2',
-    id: 'ord-active-2',
-    order_number: 'FM-881924',
-    customer_id: 'cust-demo',
-    status: 'packed',
-    payment_status: 'cod_pending',
-    payment_method: 'cod',
-    subtotal: 385,
-    discount: 0,
-    delivery_fee: 0,
-    tax: 0,
-    total: 385,
-    delivery_address: {
-      label: 'Home',
-      line1: 'Fatehchand colony, ward no 5',
-      line2: 'Near ram mandir chauraha',
-      city: 'Sabalgarh, Morena',
-      state: 'Madhya Pradesh',
-      pincode: '476229',
-    },
-    notes: 'Ring doorbell 🔔',
-    placed_at: new Date(Date.now() - 45 * 60 * 1000).toISOString(),
-    delivery_eta: '10-12 Mins',
-    rider: {
-      name: 'Suresh Verma',
-      phone: '+91 98711 82910',
-      rating: 4.8,
-      trips: 940,
-      vehicle: 'Ather 450X (HR-26-CZ-9102)',
-      photo: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=compress&cs=tinysrgb&w=150',
-    },
-    items: [
-      {
-        _id: 'item-2-1',
-        order_id: 'ord-active-2',
-        product_id: 'p-paneer-1',
-        variant_id: 'v-paneer-1',
-        product_name: 'Amul Malai Fresh Paneer Cube',
-        variant_label: '200 g Block',
-        unit_price: 120,
-        quantity: 2,
-        line_total: 240,
-        image: 'https://images.pexels.com/photos/1458694/pexels-photo-1458694.jpeg?auto=compress&cs=tinysrgb&w=200',
-      },
-      {
-        _id: 'item-2-2',
-        order_id: 'ord-active-2',
-        product_id: 'p-oil-1',
-        variant_id: 'v-oil-1',
-        product_name: 'Fortune Sunlite Refined Sunflower Oil',
-        variant_label: '1 L Pouch',
-        unit_price: 145,
-        quantity: 1,
-        line_total: 145,
-        image: 'https://images.pexels.com/photos/33783/olive-oil-salad-dressing-cooking-olive.jpg?auto=compress&cs=tinysrgb&w=200',
-      },
-    ],
-  },
-  {
-    _id: 'ord-delivered-1',
-    id: 'ord-delivered-1',
-    order_number: 'FM-762109',
-    customer_id: 'cust-demo',
-    status: 'delivered',
-    payment_status: 'cod_collected',
-    payment_method: 'cod',
-    subtotal: 472,
-    discount: 0,
-    delivery_fee: 0,
-    tax: 0,
-    total: 472,
-    delivery_address: {
-      label: 'Home',
-      line1: 'Fatehchand colony, ward no 5',
-      line2: 'Near ram mandir chauraha',
-      city: 'Sabalgarh, Morena',
-      state: 'Madhya Pradesh',
-      pincode: '476229',
-    },
-    notes: 'Leave with guard 👮',
-    placed_at: new Date(Date.now() - 2 * 24 * 3600 * 1000).toISOString(),
-    delivery_eta: 'Delivered in 8.5 Mins',
-    rider: {
-      name: 'Vikram Singh',
-      phone: '+91 99580 12830',
-      rating: 5.0,
-      trips: 2410,
-      vehicle: 'Ola S1 Pro (DL-3S-AQ-5819)',
-      photo: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=compress&cs=tinysrgb&w=150',
-    },
-    rating: 5,
-    rating_review: 'Fresh vegetables and chilled dairy delivered super fast in 8 minutes!',
-    rating_tags: ['Superfast Delivery ⚡', 'Fresh & Chilled 🥦', 'Polite Pilot 😊'],
-    items: [
-      {
-        _id: 'item-3-1',
-        order_id: 'ord-delivered-1',
-        product_id: 'p-tomato-1',
-        variant_id: 'v-tomato-1',
-        product_name: 'Farm Fresh Organic Hybrid Tomatoes',
-        variant_label: '1 kg Pack',
-        unit_price: 38,
-        quantity: 1,
-        line_total: 38,
-        image: 'https://images.pexels.com/photos/533280/pexels-photo-533280.jpeg?auto=compress&cs=tinysrgb&w=200',
-      },
-      {
-        _id: 'item-3-2',
-        order_id: 'ord-delivered-1',
-        product_id: 'p-apple-1',
-        variant_id: 'v-apple-1',
-        product_name: 'Royal Gala Crisp Himachal Apples',
-        variant_label: 'Pack of 4 (approx 600g)',
-        unit_price: 149,
-        quantity: 1,
-        line_total: 149,
-        image: 'https://images.pexels.com/photos/102104/pexels-photo-102104.jpeg?auto=compress&cs=tinysrgb&w=200',
-      },
-      {
-        _id: 'item-3-3',
-        order_id: 'ord-delivered-1',
-        product_id: 'p-yogurt-1',
-        variant_id: 'v-yogurt-1',
-        product_name: 'Epigamia Greek Yogurt Natural High Protein',
-        variant_label: '100 g Cup',
-        unit_price: 50,
-        quantity: 3,
-        line_total: 150,
-        image: 'https://images.pexels.com/photos/414262/pexels-photo-414262.jpeg?auto=compress&cs=tinysrgb&w=200',
-      },
-      {
-        _id: 'item-3-4',
-        order_id: 'ord-delivered-1',
-        product_id: 'p-cheese-1',
-        variant_id: 'v-cheese-1',
-        product_name: 'Britannia Classic Cheddar Cheese Slices',
-        variant_label: '200 g (10 Slices)',
-        unit_price: 175,
-        quantity: 1,
-        line_total: 175,
-        image: 'https://images.pexels.com/photos/821365/pexels-photo-821365.jpeg?auto=compress&cs=tinysrgb&w=200',
-      },
-    ],
-  },
-  {
-    _id: 'ord-delivered-2',
-    id: 'ord-delivered-2',
-    order_number: 'FM-639102',
-    customer_id: 'cust-demo',
-    status: 'delivered',
-    payment_status: 'cod_collected',
-    payment_method: 'cod',
-    subtotal: 433,
-    discount: 0,
-    delivery_fee: 0,
-    tax: 0,
-    total: 433,
-    delivery_address: {
-      label: 'Home',
-      line1: 'Fatehchand colony, ward no 5',
-      line2: 'Near ram mandir chauraha',
-      city: 'Sabalgarh, Morena',
-      state: 'Madhya Pradesh',
-      pincode: '476229',
-    },
-    notes: 'Leave at door 🚪',
-    placed_at: new Date(Date.now() - 5 * 24 * 3600 * 1000).toISOString(),
-    delivery_eta: 'Delivered in 9.2 Mins',
-    rating: 5,
-    rating_review: 'Always reliable quality packaging!',
-    rating_tags: ['Well Packed 📦', 'Accurate Items ✅'],
-    items: [
-      {
-        _id: 'item-4-1',
-        order_id: 'ord-delivered-2',
-        product_id: 'p-tea-1',
-        variant_id: 'v-tea-1',
-        product_name: 'Tata Tea Premium Desh Ki Chai Leaf Tea',
-        variant_label: '500 g Pouch',
-        unit_price: 265,
-        quantity: 1,
-        line_total: 265,
-        image: 'https://images.pexels.com/photos/1417945/pexels-photo-1417945.jpeg?auto=compress&cs=tinysrgb&w=200',
-      },
-      {
-        _id: 'item-4-2',
-        order_id: 'ord-delivered-2',
-        product_id: 'p-maggi-1',
-        variant_id: 'v-maggi-1',
-        product_name: 'Maggi 2-Minute Masala Instant Noodles',
-        variant_label: 'Family Pack (12 x 70g)',
-        unit_price: 168,
-        quantity: 1,
-        line_total: 168,
-        image: 'https://images.pexels.com/photos/1279330/pexels-photo-1279330.jpeg?auto=compress&cs=tinysrgb&w=200',
-      },
-    ],
-  },
-];
 
 export default function ProfilePage() {
   const {
@@ -707,7 +436,7 @@ export default function ProfilePage() {
           mergedOrders.push(bo);
         }
       }
-      const finalOrders = (mergedOrders.length > 0 ? mergedOrders : FALLBACK_ORDERS).filter(
+      const finalOrders = mergedOrders.filter(
         (o) => o.status !== 'cancelled' && o.status !== 'returned'
       );
       setOrders(finalOrders);
@@ -722,8 +451,8 @@ export default function ProfilePage() {
         const stored = localStorage.getItem('freshmart_placed_orders');
         if (stored) localPlacedOrders = JSON.parse(stored);
       } catch (e) {}
-      const fallbackList = localPlacedOrders.length > 0 ? [...localPlacedOrders, ...FALLBACK_ORDERS] : FALLBACK_ORDERS;
-      setOrders(fallbackList.filter((o) => o.status !== 'cancelled' && o.status !== 'returned'));
+      // API unreachable: show only what this device just placed, never demo orders.
+      setOrders(localPlacedOrders.filter((o) => o.status !== 'cancelled' && o.status !== 'returned'));
     } finally {
       setLoading(false);
     }
@@ -968,8 +697,8 @@ export default function ProfilePage() {
 
   const handlePrintInvoice = (order: OrderData) => {
     const printWindow = window.open('', '_blank', 'width=800,height=900');
-    const customerName = profile?.name || (order as any).customer_name || 'Aarav Sharma';
-    const customerPhone = profile?.phone || (order as any).customer_phone || '+91 99066 72945';
+    const customerName = profile?.name || (order as any).customer_name || '—';
+    const customerPhone = profile?.phone || (order as any).customer_phone || '—';
     const addr = order.delivery_address;
     const addressLine = addr
       ? `${addr.line1 || ''}${addr.city ? `, ${addr.city}` : ''}${addr.pincode ? ` - ${addr.pincode}` : ''}`
@@ -1210,7 +939,7 @@ export default function ProfilePage() {
     setEditingAddress(null);
     setAddressForm({
       label: 'Home',
-      receiver_name: profile?.name || 'Aarav Sharma',
+      receiver_name: profile?.name || '',
       receiver_phone: profile?.phone || '9906672945',
       line1: '',
       line2: '',
@@ -1228,7 +957,7 @@ export default function ProfilePage() {
     setEditingAddress(addr);
     setAddressForm({
       label: addr.label,
-      receiver_name: addr.receiver_name || profile?.name || 'Aarav Sharma',
+      receiver_name: addr.receiver_name || profile?.name || '—',
       receiver_phone: addr.receiver_phone || profile?.phone || '9906672945',
       line1: addr.line1,
       line2: addr.line2 || '',
@@ -2168,9 +1897,10 @@ export default function ProfilePage() {
                           {trackingOrder.items?.map((item, idx) => (
                             <div key={idx} className="flex items-center justify-between gap-3">
                               <div className="flex items-center gap-3 min-w-0">
-                                <img
-                                  src={item.image || 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=compress&cs=tinysrgb&w=200'}
+                                <SafeImage
+                                  src={item.image}
                                   alt={item.product_name}
+                                  iconSize={16}
                                   className="w-11 h-11 rounded-xl object-contain bg-neutral-50 border border-neutral-100 p-0.5 shrink-0"
                                 />
                                 <div className="min-w-0">
@@ -2355,9 +2085,10 @@ export default function ProfilePage() {
                                   {order.items?.slice(0, isExpanded ? undefined : 2).map((item, idx) => (
                                     <div key={idx} className="flex items-center justify-between gap-3">
                                       <div className="flex items-center gap-3 min-w-0">
-                                        <img
-                                          src={item.image || 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=compress&cs=tinysrgb&w=200'}
+                                        <SafeImage
+                                          src={item.image}
                                           alt={item.product_name}
+                                          iconSize={16}
                                           className="w-11 h-11 rounded-xl object-contain bg-neutral-50 border border-neutral-100 p-0.5 shrink-0"
                                         />
                                         <div className="min-w-0">
@@ -2563,12 +2294,12 @@ export default function ProfilePage() {
                                 <div className="flex items-center gap-2">
                                   <User className="w-3.5 h-3.5 text-neutral-400" />
                                   <span className="font-bold text-neutral-800">
-                                    {addr.receiver_name || profile?.name || 'Aarav Sharma'}
+                                    {addr.receiver_name || profile?.name || '—'}
                                   </span>
                                 </div>
                                 <div className="flex items-center gap-1.5 text-neutral-500">
                                   <Phone className="w-3 h-3 text-neutral-400" />
-                                  <span>{addr.receiver_phone || profile?.phone || '+91 99066 72945'}</span>
+                                  <span>{addr.receiver_phone || profile?.phone || '—'}</span>
                                 </div>
                               </div>
 
@@ -2760,7 +2491,7 @@ export default function ProfilePage() {
                     Billed & Delivered To:
                   </span>
                   <p className="font-extrabold text-neutral-900 text-sm">
-                    {profile?.name || (invoiceOrder as any).customer_name || 'Aarav Sharma'}
+                    {profile?.name || (invoiceOrder as any).customer_name || '—'}
                   </p>
                   <p className="text-neutral-600 text-[11px] mt-0.5">
                     {invoiceOrder.delivery_address?.line1 || 'Fatehchand colony, ward no 5, near ram mandir chauraha'}
@@ -2769,7 +2500,7 @@ export default function ProfilePage() {
                   </p>
                   <p className="text-neutral-600 text-[11px] mt-0.5">
                     <span className="font-medium text-neutral-500">Phone:</span>{' '}
-                    {profile?.phone || (invoiceOrder as any).customer_phone || '+91 99066 72945'}
+                    {profile?.phone || (invoiceOrder as any).customer_phone || '—'}
                   </p>
                 </div>
 
@@ -3011,7 +2742,7 @@ export default function ProfilePage() {
                   <label className="text-xs font-bold text-neutral-700 block mb-1">Receiver's Name</label>
                   <input
                     type="text"
-                    placeholder="e.g. Aarav Sharma"
+                    placeholder="e.g. your full name"
                     value={addressForm.receiver_name}
                     onChange={(e) => setAddressForm({ ...addressForm, receiver_name: e.target.value })}
                     className="w-full px-3.5 py-2 rounded-xl border border-neutral-200 text-xs font-medium focus:ring-2 focus:ring-emerald-500 focus:outline-none"

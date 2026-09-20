@@ -1,14 +1,12 @@
 import React, { useRef } from 'react';
 import { ChevronRight } from 'lucide-react';
 import ZeptoProductCard from './ZeptoProductCard';
-import type { ZeptoProductItem } from '../data/homeZeptoData';
 import type { ProductWithVariants } from '../lib/supabase';
 
 interface ZeptoShelfRowProps {
   title: string;
   subtitle?: string;
   badge?: string;
-  products?: ZeptoProductItem[];
   productObjects?: ProductWithVariants[];
   onSeeAll?: () => void;
 }
@@ -17,7 +15,6 @@ export default function ZeptoShelfRow({
   title,
   subtitle,
   badge,
-  products = [],
   productObjects = [],
   onSeeAll,
 }: ZeptoShelfRowProps) {
@@ -29,8 +26,7 @@ export default function ZeptoShelfRow({
     }
   };
 
-  const hasItems = products.length > 0 || productObjects.length > 0;
-  if (!hasItems) return null;
+  if (productObjects.length === 0) return null;
 
   return (
     <div className="mb-6 lg:mb-8">
@@ -69,17 +65,13 @@ export default function ZeptoShelfRow({
           ref={scrollRef}
           className="flex gap-2.5 sm:gap-3 overflow-x-auto scrollbar-hide py-1 px-1 scroll-smooth"
         >
-          {productObjects.length > 0
-            ? productObjects.map((prod) => (
-                <ZeptoProductCard key={prod.id} product={prod} />
-              ))
-            : products.map((item) => (
-                <ZeptoProductCard key={item.id} item={item} />
-              ))}
+          {productObjects.map((prod) => (
+            <ZeptoProductCard key={prod.id} product={prod} />
+          ))}
         </div>
 
         {/* Floating circular black scroll button on the right */}
-        {(productObjects.length > 3 || products.length > 3) && (
+        {productObjects.length > 3 && (
           <button
             type="button"
             onClick={scrollRight}

@@ -8,8 +8,8 @@ import { Input } from '../components/ui/FormField';
 export default function LoginPage() {
   const { signIn, isAuthenticated, loading: authLoading } = useAdminAuth();
   const navigate = useNavigate();
-  const [email, setEmail] = useState('admin@freshmart.com');
-  const [password, setPassword] = useState('Admin@12345');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -56,7 +56,7 @@ export default function LoginPage() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="admin@freshmart.com"
+              placeholder="you@example.com"
               className="pl-10"
             />
           </div>
@@ -78,16 +78,6 @@ export default function LoginPage() {
             Sign In
           </Button>
 
-          <div className="mt-6 bg-emerald-50/60 border border-emerald-100 rounded-xl p-4 text-xs text-emerald-800 flex flex-col gap-1.5 shadow-sm">
-            <span className="font-semibold text-emerald-950 flex items-center gap-1.5">
-              <span className="inline-block w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span>
-              Super Admin Credentials (Pre-seeded):
-            </span>
-            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1 mt-1">
-              <span>Email: <code className="bg-white/90 px-1.5 py-0.5 rounded border border-emerald-200/60 select-all font-mono font-semibold">admin@freshmart.com</code></span>
-              <span>Password: <code className="bg-white/90 px-1.5 py-0.5 rounded border border-emerald-200/60 select-all font-mono font-semibold">Admin@12345</code></span>
-            </div>
-          </div>
         </form>
 
         <p className="text-center text-xs text-neutral-400 mt-6">

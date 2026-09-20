@@ -10,20 +10,15 @@ import { getAllProducts, getFeaturedProducts, getPublicOfferDeals, type PublicOf
 import type { ProductWithVariants } from '../lib/supabase';
 import ZeptoProductCard from '../components/ZeptoProductCard';
 
-const filterCategories = [
-  'All Offers',
-  'Groceries',
-  'Snacks & Drinks',
-  'Dairy & Bakery',
-  'Personal Care',
-];
+/** Sentinel for the "show everything" chip; every other chip is a category id. */
+const ALL_OFFERS = 'all';
 
 export default function OffersPage() {
   const { navigate } = useApp();
   const [products, setProducts] = useState<ProductWithVariants[]>([]);
   const [offerDeals, setOfferDeals] = useState<PublicOfferDeal[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedFilter, setSelectedFilter] = useState('All Offers');
+  const [selectedFilter, setSelectedFilter] = useState(ALL_OFFERS);
 
   useEffect(() => {
     async function loadDeals() {
@@ -65,67 +60,28 @@ export default function OffersPage() {
     return prods;
   }, [offerDeals]);
 
+  // Chips come from the catalog itself, so they always match what is on sale.
+  const filterCategories = useMemo(() => {
+    const seen = new Map<string, string>();
+    for (const p of products) {
+      const id = p.category?.id ?? p.category_id;
+      const name = p.category?.name;
+      if (id && name && !seen.has(id)) seen.set(id, name);
+    }
+    return [[ALL_OFFERS, 'All Offers'] as [string, string], ...[...seen.entries()].sort((a, b) => a[1].localeCompare(b[1]))];
+  }, [products]);
+
   // Every product, biggest saving first, then narrowed by the selected chip.
   const offerProducts = useMemo(() => {
-    const sorted = [...products].sort((a, b) => {
-      const aDisc = a.variants?.[0]?.discount ||
-        ((a.variants?.[0]?.original_price || 0) - (a.variants?.[0]?.price || 0));
-      const bDisc = b.variants?.[0]?.discount || 
-        ((b.variants?.[0]?.original_price || 0) - (b.variants?.[0]?.price || 0));
-      return bDisc - aDisc;
-    });
+    const savingOf = (p: ProductWithVariants) => {
+      const v = p.variants?.[0];
+      if (!v) return 0;
+      return v.discount || Math.max(0, (v.original_price || 0) - (v.price || 0));
+    };
+    const sorted = [...products].sort((a, b) => savingOf(b) - savingOf(a));
 
-    if (selectedFilter === 'All Offers') return sorted;
-    const filterLower = selectedFilter.toLowerCase();
-
-    return sorted.filter((p) => {
-      const name = p.name.toLowerCase();
-      const desc = (p.description || '').toLowerCase();
-      const tags = (p.tags || []).map((t) => t.toLowerCase()).join(' ');
-
-      if (filterLower.includes('grocer')) {
-        return (
-          tags.includes('veg') ||
-          tags.includes('fruit') ||
-          tags.includes('staple') ||
-          name.includes('atta') ||
-          name.includes('rice') ||
-          name.includes('oil') ||
-          name.includes('dal')
-        );
-      }
-      if (filterLower.includes('snack')) {
-        return (
-          tags.includes('snack') ||
-          tags.includes('beverage') ||
-          name.includes('chip') ||
-          name.includes('juice') ||
-          name.includes('coke') ||
-          name.includes('tea') ||
-          name.includes('coffee')
-        );
-      }
-      if (filterLower.includes('dairy')) {
-        return (
-          tags.includes('dairy') ||
-          tags.includes('bakery') ||
-          name.includes('milk') ||
-          name.includes('bread') ||
-          name.includes('butter') ||
-          name.includes('paneer')
-        );
-      }
-      if (filterLower.includes('personal')) {
-        return (
-          tags.includes('personal') ||
-          tags.includes('care') ||
-          name.includes('shampoo') ||
-          name.includes('soap') ||
-          name.includes('cream')
-        );
-      }
-      return true;
-    });
+    if (selectedFilter === ALL_OFFERS) return sorted;
+    return sorted.filter((p) => (p.category?.id ?? p.category_id) === selectedFilter);
   }, [products, selectedFilter]);
 
   return (
@@ -220,20 +176,20 @@ export default function OffersPage() {
           3. CATEGORY FILTER PILLS (Clean & compact)
       ───────────────────────────────────────────────────────────── */}
       <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
-        {filterCategories.map((cat) => {
-          const isSelected = selectedFilter === cat;
+        {filterCategories.map(([id, name]) => {
+          const isSelected = selectedFilter === id;
           return (
             <button
-              key={cat}
+              key={id}
               type="button"
-              onClick={() => setSelectedFilter(cat)}
+              onClick={() => setSelectedFilter(id)}
               className={`px-3 py-1 rounded-xl text-xs font-bold transition-all flex-shrink-0 cursor-pointer ${
                 isSelected
                   ? 'bg-primary-600 text-white shadow-xs'
                   : 'bg-white text-neutral-700 border border-neutral-200 hover:border-neutral-300 hover:text-neutral-900'
               }`}
             >
-              {cat}
+              {name}
             </button>
           );
         })}

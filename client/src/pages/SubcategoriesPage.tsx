@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, ArrowRight, Package, ChevronRight } from 'lucide-react';
 import { useApp } from '../context/AppContext';
+import SafeImage from '../components/SafeImage';
 import { getSubcategoriesByCategory, getCategoryBySlug } from '../lib/data';
 import type { Subcategory, Category } from '../lib/supabase';
 
@@ -91,11 +92,11 @@ export default function SubcategoriesPage() {
                     className="bg-white rounded-2xl shadow-card overflow-hidden hover:shadow-card-hover transition-all group"
                   >
                     <div className={`h-36 relative overflow-hidden`}>
-                      <img
-                        src={sub.image || 'https://images.pexels.com/photos/1583884/pexels-photo-1583884.jpeg?auto=compress&cs=tinysrgb&w=400'}
+                      <SafeImage
+                        src={sub.image}
                         alt={sub.name}
+                        iconSize={26}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                        loading="lazy"
                       />
                     </div>
                     <div className="p-4 text-left">
@@ -117,11 +118,11 @@ export default function SubcategoriesPage() {
                     className="bg-white rounded-2xl shadow-card overflow-hidden active:scale-95 transition-transform"
                   >
                     <div className="h-24 relative overflow-hidden">
-                      <img
-                        src={sub.image || 'https://images.pexels.com/photos/1583884/pexels-photo-1583884.jpeg?auto=compress&cs=tinysrgb&w=400'}
+                      <SafeImage
+                        src={sub.image}
                         alt={sub.name}
+                        iconSize={22}
                         className="w-full h-full object-cover"
-                        loading="lazy"
                       />
                     </div>
                     <div className="p-3">

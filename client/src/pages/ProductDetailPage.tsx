@@ -14,6 +14,7 @@ import {
   Banknote,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
+import SafeImage from '../components/SafeImage';
 import {
   getProductById,
   getCategories,
@@ -300,13 +301,11 @@ export default function ProductDetailPage() {
 
             {/* Compact Product Image */}
             <div className="relative w-full h-44 sm:h-52 md:h-60 flex items-center justify-center p-2 my-1">
-              <img
-                src={
-                  product.image ||
-                  'https://images.pexels.com/photos/5966630/pexels-photo-5966630.jpeg?auto=compress&cs=tinysrgb&w=600'
-                }
+              <SafeImage
+                src={product.image}
                 alt={product.name}
-                className="max-h-full max-w-full object-contain transition-transform duration-300 hover:scale-105"
+                iconSize={32}
+                className="max-h-full max-w-full h-full w-full object-contain transition-transform duration-300 hover:scale-105"
               />
             </div>
 

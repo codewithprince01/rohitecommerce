@@ -26,6 +26,7 @@ import {
   ShieldCheck,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
+import SafeImage from '../components/SafeImage';
 import { createCustomerOrder } from '../lib/profileApi';
 
 // Seller's WhatsApp destination number (with country code 91)
@@ -173,8 +174,8 @@ export default function CartPage() {
     const chosenSlot = DELIVERY_SLOTS.find(s => s.id === selectedSlot) || DELIVERY_SLOTS[0];
 
     // Customer profile info
-    let customerName = 'Aarav Sharma';
-    let customerPhone = '+91 99066 72945';
+    let customerName = '';
+    let customerPhone = '';
     let customerNote = '';
 
     try {
@@ -664,8 +665,8 @@ export default function CartPage() {
                   >
                     {/* Image & Title */}
                     <div className="flex items-center gap-3 min-w-0 flex-1">
-                      <img
-                        src={item.product.image || 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=compress&cs=tinysrgb&w=300&h=300&fit=crop'}
+                      <SafeImage
+                        src={item.product.image}
                         alt={item.product.name}
                         className="w-14 h-14 sm:w-16 sm:h-16 rounded-xl object-cover shrink-0"
                       />

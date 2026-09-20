@@ -29,9 +29,9 @@ export const env = {
   },
 
   seed: {
-    email: process.env.SEED_ADMIN_EMAIL || 'admin@freshmart.com',
-    password: process.env.SEED_ADMIN_PASSWORD || 'Admin@12345',
-    name: process.env.SEED_ADMIN_NAME || 'Store Owner',
+    email: process.env.SEED_ADMIN_EMAIL || 'agrawalshop@gmail.com',
+    password: process.env.SEED_ADMIN_PASSWORD || 'agrawalshop@1234',
+    name: process.env.SEED_ADMIN_NAME || 'Agrawal General & Provisional Store',
   },
 
   upload: {

@@ -12,19 +12,11 @@ async function resolveCustomer(req) {
       if (cust) return cust;
     } catch (e) {}
   }
-  // Default to first customer in DB or create a demo customer
+  // Fall back to the first shopper on file. A brand new store has none, so we
+  // open a blank record rather than inventing a demo identity with a balance.
   let cust = await Customer.findOne({ is_blocked: false }).sort({ created_at: 1 });
   if (!cust) {
-    cust = await Customer.create({
-      name: 'Aarav Sharma',
-      email: 'aarav.sharma@example.com',
-      phone: '9906672945',
-      wallet_balance: 250,
-      cashback_earned: 45,
-      is_vip: true,
-      freshpass_expiry: '31 Dec 2026',
-      notes: 'Valued VIP Member',
-    });
+    cust = await Customer.create({ name: 'Guest' });
   }
   return cust;
 }

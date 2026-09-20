@@ -1,17 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronRight } from 'lucide-react';
+import { ChevronRight, Store } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { getCategories, getFeaturedProducts, getPublicHomeSections, type PublicHomeSection } from '../lib/data';
 import type { Category, ProductWithVariants } from '../lib/supabase';
 import ZeptoCategoryGrid from '../components/ZeptoCategoryGrid';
 import ZeptoShelfRow from '../components/ZeptoShelfRow';
 import ZeptoProductCard from '../components/ZeptoProductCard';
-import {
-  laundryProducts,
-  cleaningProducts,
-  riceProducts,
-  hairCareProducts,
-} from '../data/homeZeptoData';
 
 export default function HomePage() {
   const { navigate, setCategory } = useApp();
@@ -53,62 +47,24 @@ export default function HomePage() {
   return (
     <div className="pb-8 lg:pb-12 max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 pt-3">
       {/* 2-Row Shop by Category Grid */}
-      <ZeptoCategoryGrid />
+      <ZeptoCategoryGrid categories={categories} />
 
-      {/* Dynamic Database-Driven Home Shelves (Created & Managed in Admin Panel) */}
-      {homeSections.length > 0 ? (
-        homeSections.map((section) => (
-          <ZeptoShelfRow
-            key={section.id}
-            title={section.title}
-            subtitle={section.subtitle}
-            badge={section.badge}
-            productObjects={section.products}
-            onSeeAll={() => {
-              if (section.category?.slug) {
-                setCategory(section.category.slug);
-              }
-              navigate('categories');
-            }}
-          />
-        ))
-      ) : (
-        /* Fallback shelves if no custom sections configured yet */
-        <>
-          <ZeptoShelfRow
-            title="Laundry Care"
-            products={laundryProducts}
-            onSeeAll={() => {
-              setCategory('personal-care');
-              navigate('categories');
-            }}
-          />
-          <ZeptoShelfRow
-            title="Cleaning Essentials"
-            products={cleaningProducts}
-            onSeeAll={() => {
-              setCategory('personal-care');
-              navigate('categories');
-            }}
-          />
-          <ZeptoShelfRow
-            title="Rice"
-            products={riceProducts}
-            onSeeAll={() => {
-              setCategory('staples');
-              navigate('categories');
-            }}
-          />
-          <ZeptoShelfRow
-            title="Hair care"
-            products={hairCareProducts}
-            onSeeAll={() => {
-              setCategory('personal-care');
-              navigate('categories');
-            }}
-          />
-        </>
-      )}
+      {/* Shelves exactly as configured in Admin → Home Sections */}
+      {homeSections.map((section) => (
+        <ZeptoShelfRow
+          key={section.id}
+          title={section.title}
+          subtitle={section.subtitle}
+          badge={section.badge}
+          productObjects={section.products}
+          onSeeAll={() => {
+            if (section.category?.slug) {
+              setCategory(section.category.slug);
+            }
+            navigate('categories');
+          }}
+        />
+      ))}
 
       {/* Additional Featured items from database */}
       {featuredProducts.length > 0 && (
@@ -131,6 +87,19 @@ export default function HomePage() {
               <ZeptoProductCard key={p.id} product={p} />
             ))}
           </div>
+        </div>
+      )}
+
+      {/* Nothing published yet — say so plainly instead of faking a catalog. */}
+      {categories.length === 0 && homeSections.length === 0 && featuredProducts.length === 0 && (
+        <div className="py-20 text-center">
+          <div className="w-14 h-14 rounded-2xl bg-neutral-100 flex items-center justify-center mx-auto mb-4">
+            <Store size={26} className="text-neutral-400" />
+          </div>
+          <h2 className="text-base font-bold text-neutral-800">The store is being set up</h2>
+          <p className="text-sm text-neutral-500 mt-1 max-w-sm mx-auto">
+            Products and categories will appear here as soon as they are added. Please check back shortly.
+          </p>
         </div>
       )}
     </div>

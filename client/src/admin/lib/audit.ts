@@ -1,31 +1,19 @@
-import { supabase } from '../../lib/supabase';
 import type { AdminUser } from './types';
 
-// The auth context registers the signed-in admin here so any service can
-// attribute activity-log entries without threading the admin through calls.
+/**
+ * Tracks who is signed in for client-side attribution.
+ *
+ * The audit trail itself is written server-side — every mutating route calls
+ * the backend's own `logActivity`, which records the admin from the verified
+ * access token. Writing a second, unverifiable log from the browser would only
+ * produce entries nobody can trust, so this module just remembers the admin.
+ */
 let currentAdmin: Pick<AdminUser, 'id' | 'email'> | null = null;
 
 export function setAuditAdmin(admin: Pick<AdminUser, 'id' | 'email'> | null) {
   currentAdmin = admin;
 }
 
-export async function logActivity(
-  action: string,
-  entityType?: string,
-  entityId?: string | null,
-  metadata?: Record<string, unknown>
-): Promise<void> {
-  try {
-    await supabase.from('activity_logs').insert({
-      admin_user_id: currentAdmin?.id ?? null,
-      admin_email: currentAdmin?.email ?? null,
-      action,
-      entity_type: entityType ?? null,
-      entity_id: entityId ?? null,
-      metadata: metadata ?? null,
-    });
-  } catch (err) {
-    // Never let audit logging break the primary action.
-    console.warn('Failed to write activity log', err);
-  }
+export function getAuditAdmin(): Pick<AdminUser, 'id' | 'email'> | null {
+  return currentAdmin;
 }
