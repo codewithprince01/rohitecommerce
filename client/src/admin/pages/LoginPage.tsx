@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
-import { Leaf, Mail, Lock, AlertCircle } from 'lucide-react';
+import { Mail, Lock, AlertCircle } from 'lucide-react';
 import { useAdminAuth } from '../context/AdminAuthContext';
 import Button from '../components/ui/Button';
 import { Input } from '../components/ui/FormField';
@@ -33,11 +33,13 @@ export default function LoginPage() {
     <div className="min-h-screen bg-neutral-50 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="flex flex-col items-center mb-8">
-          <div className="w-14 h-14 rounded-2xl bg-primary-500 flex items-center justify-center mb-3">
-            <Leaf size={28} className="text-white" />
-          </div>
-          <h1 className="text-xl font-bold text-neutral-800 text-center">Agrawal General & Provisional Store</h1>
-          <p className="text-xs text-neutral-500 mt-1">Admin Console — Sign in to manage your store</p>
+          {/* The logo carries the store name, so no heading repeats it */}
+          <img
+            src="/agrawal_log.png"
+            alt="Agrawal General & Provisional Store"
+            className="h-16 w-auto max-w-[280px] object-contain"
+          />
+          <p className="text-xs text-neutral-500 mt-3">Sign in to manage your store</p>
         </div>
 
         <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-card p-6 lg:p-8">

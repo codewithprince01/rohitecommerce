@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { Leaf, X, Store } from 'lucide-react';
+import { X, Store } from 'lucide-react';
 import { NAV_ITEMS, NAV_GROUPS } from './nav';
 import { useAdminAuth } from '../../context/AdminAuthContext';
 
@@ -15,18 +15,16 @@ export default function Sidebar({ mobileOpen, onClose }: SidebarProps) {
 
   const content = (
     <div className="flex flex-col h-full">
-      {/* Logo */}
-      <div className="p-5 border-b border-neutral-100 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-primary-500 flex items-center justify-center">
-            <Leaf size={20} className="text-white" />
-          </div>
-          <div>
-            <span className="text-sm font-bold text-neutral-800 leading-tight block">Agrawal General & Provisional Store</span>
-            <p className="text-[10px] text-neutral-500 mt-0.5">Admin Console</p>
-          </div>
+      {/* Logo — the store name lives inside the artwork, so it isn't repeated here */}
+      <div className="p-5 border-b border-neutral-100 flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <img
+            src="/agrawal_log.png"
+            alt="Agrawal General & Provisional Store"
+            className="h-11 w-auto max-w-full object-contain object-left"
+          />
         </div>
-        <button onClick={onClose} className="lg:hidden text-neutral-400" aria-label="Close menu">
+        <button onClick={onClose} className="lg:hidden text-neutral-400 flex-shrink-0" aria-label="Close menu">
           <X size={20} />
         </button>
       </div>
