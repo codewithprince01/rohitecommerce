@@ -101,7 +101,7 @@ export default function DashboardPage() {
         <OpTile icon={Truck} label="Out for delivery" value={data.outForDelivery} tone="cyan" onClick={() => navigate('/orders?status=out_for_delivery')} />
         <OpTile icon={AlertTriangle} label="Low stock" value={data.lowStockCount} tone="amber" onClick={() => navigate('/inventory')} />
         <OpTile icon={PackageX} label="Out of stock" value={data.outOfStockCount} tone="rose" onClick={() => navigate('/inventory')} />
-        <OpTile icon={Wallet} label="Unpaid" value={formatCompactCurrency(data.unpaidRevenue)} tone="violet" onClick={() => navigate('/payments')} />
+        <OpTile icon={Wallet} label="Unpaid" value={formatCompactCurrency(data.unpaidRevenue)} tone="violet" onClick={() => navigate('/orders?payment_status=pending')} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mt-4">

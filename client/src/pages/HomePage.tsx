@@ -1,13 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronRight } from 'lucide-react';
 import { useApp } from '../context/AppContext';
-import { getCategories, getFeaturedProducts } from '../lib/data';
+import { getCategories, getFeaturedProducts, getPublicHomeSections, type PublicHomeSection } from '../lib/data';
 import type { Category, ProductWithVariants } from '../lib/supabase';
 import ZeptoCategoryGrid from '../components/ZeptoCategoryGrid';
 import ZeptoShelfRow from '../components/ZeptoShelfRow';
 import ZeptoProductCard from '../components/ZeptoProductCard';
-import ProductCard from '../components/ProductCard';
-import SectionHeader from '../components/SectionHeader';
 import {
   laundryProducts,
   cleaningProducts,
@@ -19,18 +17,21 @@ export default function HomePage() {
   const { navigate, setCategory } = useApp();
   const [categories, setCategories] = useState<Category[]>([]);
   const [featuredProducts, setFeaturedProducts] = useState<ProductWithVariants[]>([]);
+  const [homeSections, setHomeSections] = useState<PublicHomeSection[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function fetchData() {
       setLoading(true);
       try {
-        const [catData, prodData] = await Promise.all([
+        const [catData, prodData, sectionsData] = await Promise.all([
           getCategories(),
           getFeaturedProducts(),
+          getPublicHomeSections(),
         ]);
         setCategories(catData);
         setFeaturedProducts(prodData);
+        setHomeSections(sectionsData);
       } catch (err) {
         console.error('Failed to fetch home data:', err);
       } finally {
@@ -54,47 +55,62 @@ export default function HomePage() {
       {/* 2-Row Shop by Category Grid */}
       <ZeptoCategoryGrid />
 
-      {/* Shelf 1: Laundry Care */}
-      <ZeptoShelfRow
-        title="Laundry Care"
-        products={laundryProducts}
-        onSeeAll={() => {
-          setCategory('personal-care');
-          navigate('categories');
-        }}
-      />
+      {/* Dynamic Database-Driven Home Shelves (Created & Managed in Admin Panel) */}
+      {homeSections.length > 0 ? (
+        homeSections.map((section) => (
+          <ZeptoShelfRow
+            key={section.id}
+            title={section.title}
+            subtitle={section.subtitle}
+            badge={section.badge}
+            productObjects={section.products}
+            onSeeAll={() => {
+              if (section.category?.slug) {
+                setCategory(section.category.slug);
+              }
+              navigate('categories');
+            }}
+          />
+        ))
+      ) : (
+        /* Fallback shelves if no custom sections configured yet */
+        <>
+          <ZeptoShelfRow
+            title="Laundry Care"
+            products={laundryProducts}
+            onSeeAll={() => {
+              setCategory('personal-care');
+              navigate('categories');
+            }}
+          />
+          <ZeptoShelfRow
+            title="Cleaning Essentials"
+            products={cleaningProducts}
+            onSeeAll={() => {
+              setCategory('personal-care');
+              navigate('categories');
+            }}
+          />
+          <ZeptoShelfRow
+            title="Rice"
+            products={riceProducts}
+            onSeeAll={() => {
+              setCategory('staples');
+              navigate('categories');
+            }}
+          />
+          <ZeptoShelfRow
+            title="Hair care"
+            products={hairCareProducts}
+            onSeeAll={() => {
+              setCategory('personal-care');
+              navigate('categories');
+            }}
+          />
+        </>
+      )}
 
-      {/* Shelf 2: Cleaning Essentials */}
-      <ZeptoShelfRow
-        title="Cleaning Essentials"
-        products={cleaningProducts}
-        onSeeAll={() => {
-          setCategory('personal-care');
-          navigate('categories');
-        }}
-      />
-
-      {/* Shelf 3: Rice */}
-      <ZeptoShelfRow
-        title="Rice"
-        products={riceProducts}
-        onSeeAll={() => {
-          setCategory('staples');
-          navigate('categories');
-        }}
-      />
-
-      {/* Shelf 4: Hair care */}
-      <ZeptoShelfRow
-        title="Hair care"
-        products={hairCareProducts}
-        onSeeAll={() => {
-          setCategory('personal-care');
-          navigate('categories');
-        }}
-      />
-
-      {/* Additional Featured items from database - Exact same Zepto card design */}
+      {/* Additional Featured items from database */}
       {featuredProducts.length > 0 && (
         <div className="mb-6 lg:mb-8">
           <div className="flex items-center justify-between mb-3 px-1">
@@ -120,3 +136,4 @@ export default function HomePage() {
     </div>
   );
 }
+

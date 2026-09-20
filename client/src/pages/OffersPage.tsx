@@ -2,9 +2,11 @@ import React, { useState, useEffect, useMemo } from 'react';
 import {
   Zap,
   Percent,
+  Sparkles,
+  Tag,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
-import { getAllProducts, getFeaturedProducts } from '../lib/data';
+import { getAllProducts, getFeaturedProducts, getPublicOfferDeals, type PublicOfferDeal } from '../lib/data';
 import type { ProductWithVariants } from '../lib/supabase';
 import ZeptoProductCard from '../components/ZeptoProductCard';
 
@@ -19,14 +21,18 @@ const filterCategories = [
 export default function OffersPage() {
   const { navigate } = useApp();
   const [products, setProducts] = useState<ProductWithVariants[]>([]);
+  const [offerDeals, setOfferDeals] = useState<PublicOfferDeal[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedFilter, setSelectedFilter] = useState('All Offers');
 
   useEffect(() => {
     async function loadDeals() {
       try {
-        // Fetch all products to get maximum offers
-        const all = await getAllProducts();
+        const [deals, all] = await Promise.all([
+          getPublicOfferDeals(),
+          getAllProducts(),
+        ]);
+        setOfferDeals(deals);
         if (all && all.length > 0) {
           setProducts(all);
         } else {
@@ -46,10 +52,18 @@ export default function OffersPage() {
     loadDeals();
   }, []);
 
-  // Filter products by category or show all offer products
-  const offerProducts = useMemo(() => {
-    // Sort items so items with biggest discounts come first
-    const sorted = [...products].sort((a, b) => {
+  // Primary active campaign configured by Admin
+  const activeDeal = offerDeals.length > 0 ? offerDeals[0] : null;
+  const dealProducts = useMemo(() => {
+    if (!offerDeals || offerDeals.length === 0) return [];
+    const prods: ProductWithVariants[] = [];
+    for (const d of offerDeals) {
+      if (Array.isArray(d.products)) {
+        prods.push(...d.products);
+      }
+    }
+    return prods;
+  }, [offerDeals]);
       const aDisc = a.variants?.[0]?.discount || 
         ((a.variants?.[0]?.original_price || 0) - (a.variants?.[0]?.price || 0));
       const bDisc = b.variants?.[0]?.discount || 
@@ -113,45 +127,90 @@ export default function OffersPage() {
   return (
     <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 space-y-5 sm:space-y-6">
       {/* ─────────────────────────────────────────────────────────────
-          1. COMPACT HERO STRIP (Clean & Not oversized)
+          1. DYNAMIC HERO STRIP (Configured via Admin Offers & Deals)
       ───────────────────────────────────────────────────────────── */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-[#0F766E] via-[#059669] to-[#047857] text-white px-4 py-3.5 sm:px-6 sm:py-4 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div
+        className={`relative overflow-hidden rounded-2xl text-white px-4 py-4 sm:px-6 sm:py-5 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
+          activeDeal?.bg_gradient
+            ? `bg-gradient-to-r ${activeDeal.bg_gradient}`
+            : 'bg-gradient-to-r from-[#0F766E] via-[#059669] to-[#047857]'
+        }`}
+      >
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center flex-shrink-0 shadow-inner">
-            <Zap size={22} className="text-amber-300 fill-amber-300" />
+          <div className="w-11 h-11 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center flex-shrink-0 shadow-inner">
+            <Zap size={24} className="text-amber-300 fill-amber-300" />
           </div>
           <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-base sm:text-lg font-black tracking-tight leading-none">
-                Mega Deals & Offers Corner
+            <div className="flex items-center gap-2 flex-wrap">
+              <h1 className="text-base sm:text-xl font-black tracking-tight leading-none">
+                {activeDeal?.title || 'Mega Deals & Offers Corner'}
               </h1>
-              <span className="bg-amber-400 text-neutral-900 text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider">
-                Active
-              </span>
+              {activeDeal?.badge && (
+                <span className="bg-amber-400 text-neutral-900 text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider">
+                  {activeDeal.badge}
+                </span>
+              )}
+              {activeDeal?.discount_label && (
+                <span className="bg-white/20 backdrop-blur-sm text-white border border-white/30 text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider">
+                  {activeDeal.discount_label}
+                </span>
+              )}
             </div>
-            <p className="text-[11px] sm:text-xs text-emerald-100 mt-1 font-medium">
-              Save big on daily essentials with handpicked flash deals & coupons
+            <p className="text-[11px] sm:text-xs text-white/90 mt-1 font-medium">
+              {activeDeal?.subtitle || 'Save big on daily essentials with handpicked flash deals & promotions'}
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2 self-start sm:self-auto">
+        <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
           <button
             type="button"
             onClick={() => navigate('categories')}
-            className="px-3 py-1.5 bg-white text-emerald-800 text-xs font-bold rounded-xl shadow-xs hover:bg-emerald-50 active:scale-95 transition-all"
+            className="px-3.5 py-1.5 bg-white text-neutral-900 text-xs font-bold rounded-xl shadow-xs hover:bg-neutral-100 active:scale-95 transition-all"
           >
             All Categories
           </button>
           <button
             type="button"
             onClick={() => navigate('cart')}
-            className="px-3 py-1.5 bg-black/20 hover:bg-black/30 text-white text-xs font-bold rounded-xl border border-white/20 active:scale-95 transition-all"
+            className="px-3.5 py-1.5 bg-black/25 hover:bg-black/35 text-white text-xs font-bold rounded-xl border border-white/20 active:scale-95 transition-all"
           >
             View Cart
           </button>
         </div>
       </div>
+
+      {/* ─────────────────────────────────────────────────────────────
+          2. CURATED CAMPAIGN DEALS (Handpicked by Admin)
+      ───────────────────────────────────────────────────────────── */}
+      {dealProducts.length > 0 && (
+        <div className="bg-gradient-to-b from-amber-50/70 to-white border border-amber-200/80 rounded-2xl p-3.5 sm:p-4 shadow-2xs">
+          <div className="flex items-center justify-between mb-3 px-1">
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 rounded-lg bg-amber-500 text-white flex items-center justify-center">
+                <Sparkles size={14} />
+              </div>
+              <h2 className="text-sm sm:text-base font-black text-neutral-900">
+                {activeDeal?.title ? `Special Picks: ${activeDeal.title}` : 'Featured Special Picks'}
+              </h2>
+              {activeDeal?.discount_label && (
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-100 text-red-700">
+                  {activeDeal.discount_label}
+                </span>
+              )}
+            </div>
+            <span className="text-xs text-neutral-500 font-medium">
+              {dealProducts.length} items
+            </span>
+          </div>
+
+          <div className="flex gap-2.5 sm:gap-3 overflow-x-auto scrollbar-hide py-1 px-1 scroll-smooth">
+            {dealProducts.map((p) => (
+              <ZeptoProductCard key={p.id} product={p} />
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* ─────────────────────────────────────────────────────────────
           3. CATEGORY FILTER PILLS (Clean & compact)

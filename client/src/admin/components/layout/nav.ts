@@ -5,10 +5,10 @@ import {
   Boxes,
   ShoppingCart,
   Users,
-  Ticket,
+  Layers,
+  Sparkles,
   Image,
   Truck,
-  CreditCard,
   BarChart3,
   Bell,
   Settings,
@@ -36,13 +36,13 @@ export const NAV_ITEMS: NavItem[] = [
 
   { label: 'Orders', path: '/orders', icon: ShoppingCart, permission: 'orders.view', group: 'Sales' },
   { label: 'Customers', path: '/customers', icon: Users, permission: 'customers.view', group: 'Sales' },
-  { label: 'Coupons', path: '/coupons', icon: Ticket, permission: 'coupons.view', group: 'Sales' },
 
+  { label: 'Home Sections', path: '/home-sections', icon: Layers, permission: 'homeSections.view', group: 'Marketing' },
+  { label: 'Offers & Deals', path: '/offers-manage', icon: Sparkles, permission: 'offers.view', group: 'Marketing' },
   { label: 'Banners', path: '/banners', icon: Image, permission: 'banners.view', group: 'Marketing' },
   { label: 'Reports', path: '/reports', icon: BarChart3, permission: 'reports.view', group: 'Marketing' },
 
   { label: 'Delivery', path: '/delivery', icon: Truck, permission: 'delivery.view', group: 'Configuration' },
-  { label: 'Payments', path: '/payments', icon: CreditCard, permission: 'payments.view', group: 'Configuration' },
   { label: 'Settings', path: '/settings', icon: Settings, permission: 'settings.view', group: 'Configuration' },
 
   { label: 'Notifications', path: '/notifications', icon: Bell, permission: 'notifications.view', group: 'System' },

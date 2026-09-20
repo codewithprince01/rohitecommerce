@@ -40,3 +40,37 @@ const bannerSchema = new mongoose.Schema(
   baseSchemaOptions
 );
 export const Banner = mongoose.model('Banner', bannerSchema);
+
+const homeSectionSchema = new mongoose.Schema(
+  {
+    title: { type: String, required: true, trim: true },
+    subtitle: { type: String, default: null, trim: true },
+    badge: { type: String, default: null, trim: true },
+    section_type: {
+      type: String,
+      enum: ['custom_products', 'category'],
+      default: 'custom_products',
+    },
+    category_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Category', default: null },
+    product_ids: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Product' }],
+    sort_order: { type: Number, default: 0 },
+    is_active: { type: Boolean, default: true, index: true },
+  },
+  baseSchemaOptions
+);
+export const HomeSection = mongoose.model('HomeSection', homeSectionSchema);
+
+const offerDealSchema = new mongoose.Schema(
+  {
+    title: { type: String, required: true, trim: true },
+    subtitle: { type: String, default: null, trim: true },
+    badge: { type: String, default: 'Flash Deal', trim: true },
+    discount_label: { type: String, default: null, trim: true },
+    bg_gradient: { type: String, default: 'from-emerald-700 via-emerald-800 to-green-950' },
+    product_ids: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Product' }],
+    sort_order: { type: Number, default: 0 },
+    is_active: { type: Boolean, default: true, index: true },
+  },
+  baseSchemaOptions
+);
+export const OfferDeal = mongoose.model('OfferDeal', offerDealSchema);

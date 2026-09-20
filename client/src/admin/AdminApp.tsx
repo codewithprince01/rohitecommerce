@@ -15,10 +15,10 @@ import OrdersPage from './pages/orders/OrdersPage';
 import OrderDetailPage from './pages/orders/OrderDetailPage';
 import CustomersPage from './pages/customers/CustomersPage';
 import CustomerDetailPage from './pages/customers/CustomerDetailPage';
-import CouponsPage from './pages/coupons/CouponsPage';
 import BannersPage from './pages/banners/BannersPage';
+import HomeSectionsPage from './pages/homeSections/HomeSectionsPage';
+import OffersManagePage from './pages/offers/OffersManagePage';
 import DeliveryPage from './pages/delivery/DeliveryPage';
-import PaymentsPage from './pages/payments/PaymentsPage';
 import ReportsPage from './pages/reports/ReportsPage';
 import NotificationsPage from './pages/notifications/NotificationsPage';
 import SettingsPage from './pages/settings/SettingsPage';
@@ -53,11 +53,11 @@ export default function AdminApp() {
                 <Route path="/orders/:id" element={<Protected permission="orders.view"><OrderDetailPage /></Protected>} />
                 <Route path="/customers" element={<Protected permission="customers.view"><CustomersPage /></Protected>} />
                 <Route path="/customers/:id" element={<Protected permission="customers.view"><CustomerDetailPage /></Protected>} />
-                <Route path="/coupons" element={<Protected permission="coupons.view"><CouponsPage /></Protected>} />
+                <Route path="/home-sections" element={<Protected permission="homeSections.view"><HomeSectionsPage /></Protected>} />
+                <Route path="/offers-manage" element={<Protected permission="offers.view"><OffersManagePage /></Protected>} />
                 <Route path="/banners" element={<Protected permission="banners.view"><BannersPage /></Protected>} />
                 <Route path="/reports" element={<Protected permission="reports.view"><ReportsPage /></Protected>} />
                 <Route path="/delivery" element={<Protected permission="delivery.view"><DeliveryPage /></Protected>} />
-                <Route path="/payments" element={<Protected permission="payments.view"><PaymentsPage /></Protected>} />
                 <Route path="/settings" element={<Protected permission="settings.view"><SettingsPage /></Protected>} />
                 <Route path="/notifications" element={<Protected permission="notifications.view"><NotificationsPage /></Protected>} />
                 <Route path="/admins" element={<Protected permission="admins.view"><AdminUsersPage /></Protected>} />

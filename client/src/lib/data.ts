@@ -724,3 +724,62 @@ export async function getAllProducts(): Promise<ProductWithVariants[]> {
   return allList;
 }
 
+export interface PublicHomeSection {
+  id: string;
+  title: string;
+  subtitle?: string;
+  badge?: string;
+  category?: { _id: string; name: string; slug: string; image?: string };
+  products: ProductWithVariants[];
+  sort_order: number;
+}
+
+export interface PublicOfferDeal {
+  id: string;
+  title: string;
+  subtitle?: string;
+  badge?: string;
+  discount_label?: string;
+  bg_gradient?: string;
+  products: ProductWithVariants[];
+  sort_order: number;
+}
+
+export async function getPublicHomeSections(): Promise<PublicHomeSection[]> {
+  try {
+    const res = await fetch(`${API_BASE}/home-sections/public`);
+    if (res.ok) {
+      const json = await res.json();
+      const rows = json?.data;
+      if (Array.isArray(rows) && rows.length > 0) {
+        return rows.map((s: any) => ({
+          ...s,
+          products: (s.products || []).map(mapProduct),
+        }));
+      }
+    }
+  } catch (err) {
+    console.warn('Failed to fetch public home sections:', err);
+  }
+  return [];
+}
+
+export async function getPublicOfferDeals(): Promise<PublicOfferDeal[]> {
+  try {
+    const res = await fetch(`${API_BASE}/offer-deals/public`);
+    if (res.ok) {
+      const json = await res.json();
+      const rows = json?.data;
+      if (Array.isArray(rows) && rows.length > 0) {
+        return rows.map((d: any) => ({
+          ...d,
+          products: (d.products || []).map(mapProduct),
+        }));
+      }
+    }
+  } catch (err) {
+    console.warn('Failed to fetch public offer deals:', err);
+  }
+  return [];
+}
+
