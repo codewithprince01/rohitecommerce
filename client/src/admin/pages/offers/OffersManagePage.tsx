@@ -13,9 +13,10 @@ import {
   Zap,
 } from 'lucide-react';
 import { offerDealsService, type OfferDealItem, type OfferDealInput } from '../../lib/services/offerDeals.service';
-import { productsService, type ProductItem } from '../../lib/services/products.service';
+import { listProducts, type ProductListRow } from '../../lib/services/products.service';
 import { useToast } from '../../hooks/useToast';
 import { useConfirm } from '../../hooks/useConfirm';
+import { formatCurrency } from '../../lib/format';
 
 const GRADIENT_PRESETS = [
   { label: 'Teal & Emerald', value: 'from-[#0F766E] via-[#059669] to-[#047857]' },
@@ -26,14 +27,14 @@ const GRADIENT_PRESETS = [
 ];
 
 export default function OffersManagePage() {
-  const { showSuccess, showError } = useToast();
+  const toast = useToast();
   const confirm = useConfirm();
 
   const [deals, setDeals] = useState<OfferDealItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Available catalog products for picking
-  const [allProducts, setAllProducts] = useState<ProductItem[]>([]);
+  const [allProducts, setAllProducts] = useState<ProductListRow[]>([]);
 
   // Modal state
   const [modalOpen, setModalOpen] = useState(false);
@@ -56,9 +57,9 @@ export default function OffersManagePage() {
     setLoading(true);
     try {
       const res = await offerDealsService.list({ pageSize: 50 });
-      setDeals(res.items || []);
+      setDeals(res.rows);
     } catch (err: any) {
-      showError(err.message || 'Failed to load offers');
+      toast.error(err.message || 'Failed to load offers');
     } finally {
       setLoading(false);
     }
@@ -66,8 +67,8 @@ export default function OffersManagePage() {
 
   const loadProducts = async () => {
     try {
-      const res = await productsService.list({ pageSize: 200 });
-      setAllProducts(res.items || []);
+      const res = await listProducts({ pageSize: 200, sortBy: 'name', sortDir: 'asc' });
+      setAllProducts(res.rows);
     } catch (err) {
       console.error('Failed to load products for offer deals:', err);
     }
@@ -108,7 +109,7 @@ export default function OffersManagePage() {
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) {
-      showError('Deal title is required');
+      toast.error('Deal title is required');
       return;
     }
 
@@ -126,15 +127,15 @@ export default function OffersManagePage() {
 
       if (editingId) {
         await offerDealsService.update(editingId, payload);
-        showSuccess('Offer deal updated! 🚀');
+        toast.success('Offer deal updated! 🚀');
       } else {
         await offerDealsService.create(payload);
-        showSuccess('New offer deal created! 🎉');
+        toast.success('New offer deal created! 🎉');
       }
       setModalOpen(false);
       fetchDeals();
     } catch (err: any) {
-      showError(err.message || 'Failed to save offer deal');
+      toast.error(err.message || 'Failed to save offer deal');
     } finally {
       setModalLoading(false);
     }
@@ -146,16 +147,16 @@ export default function OffersManagePage() {
       title: `Delete offer deal "${d.title}"?`,
       message: 'This campaign will be removed from the customer offers page.',
       confirmLabel: 'Delete Deal',
-      variant: 'danger',
+      danger: true,
     });
     if (!ok) return;
 
     try {
       await offerDealsService.delete(id);
-      showSuccess(`Offer deal "${d.title}" deleted`);
+      toast.success(`Offer deal "${d.title}" deleted`);
       fetchDeals();
     } catch (err: any) {
-      showError(err.message || 'Failed to delete offer deal');
+      toast.error(err.message || 'Failed to delete offer deal');
     }
   };
 
@@ -163,10 +164,10 @@ export default function OffersManagePage() {
     const id = d.id || d._id || '';
     try {
       await offerDealsService.update(id, { is_active: !d.is_active });
-      showSuccess(`Deal ${!d.is_active ? 'activated' : 'deactivated'}`);
+      toast.success(`Deal ${!d.is_active ? 'activated' : 'deactivated'}`);
       fetchDeals();
     } catch (err: any) {
-      showError(err.message || 'Failed to toggle status');
+      toast.error(err.message || 'Failed to toggle status');
     }
   };
 
@@ -424,11 +425,11 @@ export default function OffersManagePage() {
 
                 <div className="border border-neutral-200 rounded-2xl max-h-48 overflow-y-auto divide-y divide-neutral-100 p-1">
                   {filteredProducts.map((p) => {
-                    const isChosen = selectedProductIds.includes(p._id);
+                    const isChosen = selectedProductIds.includes(p.id);
                     return (
                       <div
-                        key={p._id}
-                        onClick={() => toggleProduct(p._id)}
+                        key={p.id}
+                        onClick={() => toggleProduct(p.id)}
                         className={`flex items-center justify-between p-2 rounded-xl transition-colors cursor-pointer ${
                           isChosen ? 'bg-primary-50/70 font-semibold' : 'hover:bg-neutral-50'
                         }`}
@@ -439,7 +440,12 @@ export default function OffersManagePage() {
                             alt={p.name}
                             className="w-8 h-8 rounded-lg object-contain bg-white border border-neutral-100 shrink-0"
                           />
-                          <p className="text-xs text-neutral-800 truncate">{p.name}</p>
+                          <div className="min-w-0">
+                            <p className="text-xs text-neutral-800 truncate">{p.name}</p>
+                            <p className="text-[10px] text-neutral-400">
+                              {p.min_price != null ? formatCurrency(p.min_price) : 'No pack priced yet'}
+                            </p>
+                          </div>
                         </div>
                         <div
                           className={`w-5 h-5 rounded-md flex items-center justify-center shrink-0 border ${

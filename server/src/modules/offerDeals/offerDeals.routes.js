@@ -15,10 +15,10 @@ router.get('/public', getPublicOfferDeals);
 
 // Admin routes
 router.use(requireAuth);
-router.get('/', listOfferDeals);
-router.post('/', createOfferDeal);
-router.patch('/:id', updateOfferDeal);
-router.put('/:id', updateOfferDeal);
-router.delete('/:id', deleteOfferDeal);
+router.get('/', requirePermission('offers.view'), listOfferDeals);
+router.post('/', requirePermission('offers.manage'), createOfferDeal);
+router.patch('/:id', requirePermission('offers.manage'), updateOfferDeal);
+router.put('/:id', requirePermission('offers.manage'), updateOfferDeal);
+router.delete('/:id', requirePermission('offers.manage'), deleteOfferDeal);
 
 export default router;

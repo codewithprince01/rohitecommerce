@@ -25,14 +25,20 @@ export const getPublicOfferDeals = asyncHandler(async (_req, res) => {
     .sort({ sort_order: 1, created_at: -1 })
     .populate({
       path: 'product_ids',
-      match: { is_active: true },
-      populate: { path: 'category_id', select: 'name slug' },
+      match: { is_available: true },
+      populate: [
+        { path: 'category_id', select: 'name slug' },
+        { path: 'variants' },
+      ],
     })
     .lean();
 
   // If no deals exist, seed a sample deal so storefront is lively
   if (!deals || deals.length === 0) {
-    const products = await Product.find({ is_active: true }).limit(10).lean();
+    const products = await Product.find({ is_available: true })
+      .limit(10)
+      .populate([{ path: 'category_id', select: 'name slug' }, { path: 'variants' }])
+      .lean();
     if (products.length > 0) {
       const sample = await OfferDeal.create({
         title: 'Mega Deals & Offers Corner',
@@ -74,7 +80,7 @@ export const listOfferDeals = asyncHandler(async (req, res) => {
       .sort({ sort_order: 1, created_at: -1 })
       .skip(skip)
       .limit(pageSize)
-      .populate('product_ids', 'name slug price original_price image')
+      .populate('product_ids', 'name slug image')
       .lean(),
     OfferDeal.countDocuments(filter),
   ]);
@@ -85,7 +91,9 @@ export const listOfferDeals = asyncHandler(async (req, res) => {
       ...d,
       id: d._id.toString(),
     })),
-    { page, pageSize, total }
+    total,
+    page,
+    pageSize
   );
 });
 
@@ -111,7 +119,7 @@ export const createOfferDeal = asyncHandler(async (req, res) => {
   });
 
   await logActivity(req, 'create', 'offer_deals', deal._id, { title: deal.title });
-  return created(res, { ...deal.toObject(), id: deal._id.toString() }, 'Offer deal created');
+  return created(res, { ...deal.toObject(), id: deal._id.toString() });
 });
 
 // 4. ADMIN: Update offer deal
@@ -134,7 +142,7 @@ export const updateOfferDeal = asyncHandler(async (req, res) => {
   await deal.save();
   await logActivity(req, 'update', 'offer_deals', deal._id, { title: deal.title });
 
-  return ok(res, { ...deal.toObject(), id: deal._id.toString() }, 'Offer deal updated');
+  return ok(res, { ...deal.toObject(), id: deal._id.toString() });
 });
 
 // 5. ADMIN: Delete offer deal
@@ -144,5 +152,5 @@ export const deleteOfferDeal = asyncHandler(async (req, res) => {
   if (!deal) throw new ApiError(404, 'Offer deal not found');
 
   await logActivity(req, 'delete', 'offer_deals', id, { title: deal.title });
-  return ok(res, null, 'Offer deal deleted');
+  return ok(res, { success: true });
 });

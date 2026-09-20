@@ -58,7 +58,7 @@ export interface OrderData {
   order_number: string;
   customer_id?: string;
   status: 'pending' | 'confirmed' | 'packed' | 'out_for_delivery' | 'delivered' | 'cancelled' | 'returned';
-  payment_status: 'pending' | 'paid' | 'failed' | 'refunded';
+  payment_status: 'pending' | 'paid' | 'failed' | 'refunded' | 'cod_pending' | 'cod_collected' | 'cancelled';
   payment_method: 'cod' | 'card' | 'upi' | 'wallet';
   subtotal: number;
   discount: number;

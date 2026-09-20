@@ -10,6 +10,8 @@ export const ALL_PERMISSIONS = [
   'customers.view', 'customers.manage',
   'coupons.view', 'coupons.manage',
   'banners.view', 'banners.manage',
+  'homeSections.view', 'homeSections.manage',
+  'offers.view', 'offers.manage',
   'delivery.view', 'delivery.manage',
   'payments.view', 'payments.manage',
   'reports.view',

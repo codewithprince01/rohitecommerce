@@ -1,5 +1,6 @@
-import { api } from '../api';
-import type { Paginated } from '../types';
+import { api, apiList } from '../api';
+import type { ListParams, Paginated } from '../types';
+import type { SectionProductRef } from './homeSections.service';
 
 export interface OfferDealItem {
   id: string;
@@ -9,15 +10,7 @@ export interface OfferDealItem {
   badge?: string | null;
   discount_label?: string | null;
   bg_gradient?: string;
-  product_ids?: Array<{
-    _id: string;
-    id?: string;
-    name: string;
-    slug: string;
-    price?: number;
-    original_price?: number;
-    image?: string;
-  }> | string[];
+  product_ids?: SectionProductRef[] | string[];
   sort_order: number;
   is_active: boolean;
   created_at?: string;
@@ -34,20 +27,18 @@ export interface OfferDealInput {
   is_active?: boolean;
 }
 
+// `api.*` already unwraps the `{ success, data }` envelope.
 export const offerDealsService = {
-  async list(params?: { search?: string; page?: number; pageSize?: number }): Promise<Paginated<OfferDealItem>> {
-    const res = await api.get<Paginated<OfferDealItem>>('/offer-deals', { params });
-    return res.data;
+  list(params: ListParams = {}): Promise<Paginated<OfferDealItem>> {
+    return apiList<OfferDealItem>('/offer-deals', params);
   },
 
-  async create(payload: OfferDealInput): Promise<OfferDealItem> {
-    const res = await api.post<OfferDealItem>('/offer-deals', payload);
-    return res.data;
+  create(payload: OfferDealInput): Promise<OfferDealItem> {
+    return api.post<OfferDealItem>('/offer-deals', payload);
   },
 
-  async update(id: string, payload: Partial<OfferDealInput>): Promise<OfferDealItem> {
-    const res = await api.patch<OfferDealItem>(`/offer-deals/${id}`, payload);
-    return res.data;
+  update(id: string, payload: Partial<OfferDealInput>): Promise<OfferDealItem> {
+    return api.patch<OfferDealItem>(`/offer-deals/${id}`, payload);
   },
 
   async delete(id: string): Promise<void> {

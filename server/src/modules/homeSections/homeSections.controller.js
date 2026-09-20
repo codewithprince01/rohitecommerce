@@ -27,15 +27,18 @@ export const getPublicHomeSections = asyncHandler(async (_req, res) => {
     .populate('category_id', 'name slug image')
     .populate({
       path: 'product_ids',
-      match: { is_active: true },
-      populate: { path: 'category_id', select: 'name slug' },
+      match: { is_available: true },
+      populate: [
+        { path: 'category_id', select: 'name slug' },
+        { path: 'variants' },
+      ],
     })
     .lean();
 
   // If no custom sections yet, seed initial defaults from existing products/categories
   if (!sections || sections.length === 0) {
-    const categories = await Category.find({ is_active: true }).limit(5).lean();
-    const products = await Product.find({ is_active: true }).limit(20).lean();
+    const categories = await Category.find({}).limit(5).lean();
+    const products = await Product.find({ is_available: true }).limit(20).lean();
 
     if (categories.length > 0 && products.length > 0) {
       const defaultData = [
@@ -72,7 +75,7 @@ export const getPublicHomeSections = asyncHandler(async (_req, res) => {
       sections = await HomeSection.find({ is_active: true })
         .sort({ sort_order: 1, created_at: 1 })
         .populate('category_id', 'name slug image')
-        .populate('product_ids')
+        .populate({ path: 'product_ids', populate: [{ path: 'category_id', select: 'name slug' }, { path: 'variants' }] })
         .lean();
     }
   }
@@ -82,8 +85,9 @@ export const getPublicHomeSections = asyncHandler(async (_req, res) => {
   for (const s of sections) {
     let prods = [];
     if (s.section_type === 'category' && s.category_id) {
-      const catProds = await Product.find({ category_id: s.category_id._id, is_active: true })
+      const catProds = await Product.find({ category_id: s.category_id._id, is_available: true })
         .limit(15)
+        .populate([{ path: 'category_id', select: 'name slug' }, { path: 'variants' }])
         .lean();
       prods = catProds.map(formatProduct);
     } else {
@@ -119,7 +123,7 @@ export const listHomeSections = asyncHandler(async (req, res) => {
       .skip(skip)
       .limit(pageSize)
       .populate('category_id', 'name slug')
-      .populate('product_ids', 'name slug price original_price image')
+      .populate('product_ids', 'name slug image')
       .lean(),
     HomeSection.countDocuments(filter),
   ]);
@@ -130,7 +134,9 @@ export const listHomeSections = asyncHandler(async (req, res) => {
       ...s,
       id: s._id.toString(),
     })),
-    { page, pageSize, total }
+    total,
+    page,
+    pageSize
   );
 });
 
@@ -156,7 +162,7 @@ export const createHomeSection = asyncHandler(async (req, res) => {
   });
 
   await logActivity(req, 'create', 'home_sections', section._id, { title: section.title });
-  return created(res, { ...section.toObject(), id: section._id.toString() }, 'Home section created');
+  return created(res, { ...section.toObject(), id: section._id.toString() });
 });
 
 // 4. ADMIN: Update home section
@@ -179,7 +185,7 @@ export const updateHomeSection = asyncHandler(async (req, res) => {
   await section.save();
   await logActivity(req, 'update', 'home_sections', section._id, { title: section.title });
 
-  return ok(res, { ...section.toObject(), id: section._id.toString() }, 'Home section updated');
+  return ok(res, { ...section.toObject(), id: section._id.toString() });
 });
 
 // 5. ADMIN: Delete home section
@@ -189,7 +195,7 @@ export const deleteHomeSection = asyncHandler(async (req, res) => {
   if (!section) throw new ApiError(404, 'Home section not found');
 
   await logActivity(req, 'delete', 'home_sections', id, { title: section.title });
-  return ok(res, null, 'Home section deleted');
+  return ok(res, { success: true });
 });
 
 // 6. ADMIN: Reorder home sections
@@ -208,5 +214,5 @@ export const reorderHomeSections = asyncHandler(async (req, res) => {
     await HomeSection.bulkWrite(ops);
   }
 
-  return ok(res, null, 'Home sections reordered');
+  return ok(res, { success: true });
 });

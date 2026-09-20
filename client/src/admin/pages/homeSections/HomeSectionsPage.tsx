@@ -15,21 +15,22 @@ import {
   EyeOff,
 } from 'lucide-react';
 import { homeSectionsService, type HomeSectionItem, type HomeSectionInput } from '../../lib/services/homeSections.service';
-import { catalogService, type CategoryItem } from '../../lib/services/catalog.service';
-import { productsService, type ProductItem } from '../../lib/services/products.service';
+import { allCategories, type Category } from '../../lib/services/catalog.service';
+import { listProducts, type ProductListRow } from '../../lib/services/products.service';
 import { useToast } from '../../hooks/useToast';
 import { useConfirm } from '../../hooks/useConfirm';
+import { formatCurrency } from '../../lib/format';
 
 export default function HomeSectionsPage() {
-  const { showSuccess, showError } = useToast();
+  const toast = useToast();
   const confirm = useConfirm();
 
   const [sections, setSections] = useState<HomeSectionItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Available catalog data for selection
-  const [allProducts, setAllProducts] = useState<ProductItem[]>([]);
-  const [allCategories, setAllCategories] = useState<CategoryItem[]>([]);
+  const [allProducts, setAllProducts] = useState<ProductListRow[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
 
   // Modal State
   const [modalOpen, setModalOpen] = useState(false);
@@ -52,9 +53,9 @@ export default function HomeSectionsPage() {
     setLoading(true);
     try {
       const res = await homeSectionsService.list({ pageSize: 50 });
-      setSections(res.items || []);
+      setSections(res.rows);
     } catch (err: any) {
-      showError(err.message || 'Failed to load home sections');
+      toast.error(err.message || 'Failed to load home sections');
     } finally {
       setLoading(false);
     }
@@ -63,11 +64,11 @@ export default function HomeSectionsPage() {
   const loadCatalogData = async () => {
     try {
       const [pRes, cRes] = await Promise.all([
-        productsService.list({ pageSize: 200 }),
-        catalogService.listCategories(),
+        listProducts({ pageSize: 200, sortBy: 'name', sortDir: 'asc' }),
+        allCategories(),
       ]);
-      setAllProducts(pRes.items || []);
-      setAllCategories(cRes || []);
+      setAllProducts(pRes.rows);
+      setCategories(cRes);
     } catch (err) {
       console.error('Failed to load catalog for section builder:', err);
     }
@@ -84,7 +85,7 @@ export default function HomeSectionsPage() {
     setSubtitle('');
     setBadge('');
     setSectionType('custom_products');
-    setCategoryId(allCategories[0]?._id || '');
+    setCategoryId(categories[0]?.id ?? '');
     setSelectedProductIds([]);
     setIsActive(true);
     setProductSearch('');
@@ -108,12 +109,12 @@ export default function HomeSectionsPage() {
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) {
-      showError('Section title is required');
+      toast.error('Section title is required');
       return;
     }
 
     if (sectionType === 'custom_products' && selectedProductIds.length === 0) {
-      showError('Please select at least 1 product for this section');
+      toast.error('Please select at least 1 product for this section');
       return;
     }
 
@@ -131,15 +132,15 @@ export default function HomeSectionsPage() {
 
       if (editingId) {
         await homeSectionsService.update(editingId, payload);
-        showSuccess('Home section updated successfully! 🚀');
+        toast.success('Home section updated successfully! 🚀');
       } else {
         await homeSectionsService.create(payload);
-        showSuccess('New home section created! 🎉');
+        toast.success('New home section created! 🎉');
       }
       setModalOpen(false);
       fetchSections();
     } catch (err: any) {
-      showError(err.message || 'Failed to save home section');
+      toast.error(err.message || 'Failed to save home section');
     } finally {
       setModalLoading(false);
     }
@@ -151,16 +152,16 @@ export default function HomeSectionsPage() {
       title: `Delete section "${s.title}"?`,
       message: 'This section will be immediately removed from the storefront home page.',
       confirmLabel: 'Delete Section',
-      variant: 'danger',
+      danger: true,
     });
     if (!ok) return;
 
     try {
       await homeSectionsService.delete(id);
-      showSuccess(`Section "${s.title}" deleted`);
+      toast.success(`Section "${s.title}" deleted`);
       fetchSections();
     } catch (err: any) {
-      showError(err.message || 'Failed to delete section');
+      toast.error(err.message || 'Failed to delete section');
     }
   };
 
@@ -168,10 +169,10 @@ export default function HomeSectionsPage() {
     const id = s.id || s._id || '';
     try {
       await homeSectionsService.update(id, { is_active: !s.is_active });
-      showSuccess(`Section ${!s.is_active ? 'enabled' : 'hidden'} on storefront`);
+      toast.success(`Section ${!s.is_active ? 'enabled' : 'hidden'} on storefront`);
       fetchSections();
     } catch (err: any) {
-      showError(err.message || 'Failed to update status');
+      toast.error(err.message || 'Failed to update status');
     }
   };
 
@@ -187,9 +188,9 @@ export default function HomeSectionsPage() {
     const ids = newSections.map((s) => s.id || s._id || '');
     try {
       await homeSectionsService.reorder(ids);
-      showSuccess('Display order updated');
+      toast.success('Display order updated');
     } catch (err: any) {
-      showError(err.message || 'Failed to reorder');
+      toast.error(err.message || 'Failed to reorder');
       fetchSections();
     }
   };
@@ -203,7 +204,7 @@ export default function HomeSectionsPage() {
   const filteredProducts = allProducts.filter((p) => {
     if (!productSearch) return true;
     const q = productSearch.toLowerCase();
-    return p.name.toLowerCase().includes(q) || (p.tags || []).some((t) => t.toLowerCase().includes(q));
+    return p.name.toLowerCase().includes(q) || (p.tags || []).some((t: string) => t.toLowerCase().includes(q));
   });
 
   return (
@@ -474,8 +475,8 @@ export default function HomeSectionsPage() {
                     onChange={(e) => setCategoryId(e.target.value)}
                     className="w-full px-3.5 py-2.5 rounded-xl border border-neutral-200 text-sm font-medium focus:ring-2 focus:ring-primary-500 outline-none bg-white"
                   >
-                    {allCategories.map((c) => (
-                      <option key={c._id} value={c._id}>
+                    {categories.map((c) => (
+                      <option key={c.id} value={c.id}>
                         {c.name}
                       </option>
                     ))}
@@ -519,11 +520,11 @@ export default function HomeSectionsPage() {
                       <div className="p-4 text-center text-xs text-neutral-400">No products match search.</div>
                     ) : (
                       filteredProducts.map((p) => {
-                        const isChosen = selectedProductIds.includes(p._id);
+                        const isChosen = selectedProductIds.includes(p.id);
                         return (
                           <div
-                            key={p._id}
-                            onClick={() => toggleProductSelection(p._id)}
+                            key={p.id}
+                            onClick={() => toggleProductSelection(p.id)}
                             className={`flex items-center justify-between p-2 rounded-xl transition-colors cursor-pointer ${
                               isChosen ? 'bg-primary-50/70 font-semibold' : 'hover:bg-neutral-50'
                             }`}
@@ -536,7 +537,9 @@ export default function HomeSectionsPage() {
                               />
                               <div className="min-w-0">
                                 <p className="text-xs text-neutral-800 truncate">{p.name}</p>
-                                <p className="text-[10px] text-neutral-400">₹{p.price}</p>
+                                <p className="text-[10px] text-neutral-400">
+                                  {p.min_price != null ? formatCurrency(p.min_price) : 'No pack priced yet'}
+                                </p>
                               </div>
                             </div>
 

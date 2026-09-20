@@ -1,6 +1,7 @@
 import React, { useState, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
-  Plus, Pencil, Trash2, Eye, EyeOff, ImageOff, Download,
+  Plus, Pencil, Trash2, Eye, EyeOff, ImageOff, Download, UploadCloud,
   Package, CheckCircle2, AlertTriangle, XCircle, Wallet,
 } from 'lucide-react';
 import PageHeader from '../../components/ui/PageHeader';
@@ -28,6 +29,7 @@ import {
 import { allCategories } from '../../lib/services/catalog.service';
 import { formatCurrency, formatCompactCurrency } from '../../lib/format';
 import ProductForm from './ProductForm';
+import TemplateMenu from '../../components/bulk/TemplateMenu';
 
 const LOW_STOCK = 10;
 
@@ -46,6 +48,7 @@ function downloadCsv(filename: string, csv: string) {
 export default function ProductsPage() {
   const toast = useToast();
   const confirm = useConfirm();
+  const navigate = useNavigate();
   const { can } = useAdminAuth();
   const table = useTable<ProductListRow>(listProducts, { initialSortBy: 'created_at', initialSortDir: 'desc' });
   const { data: categories } = useAsync(() => allCategories(), []);
@@ -262,6 +265,18 @@ export default function ProductsPage() {
             <Button variant="outline" icon={<Download size={16} />} onClick={handleExport} loading={exporting}>
               Export
             </Button>
+            {can('categories.manage') && (
+              <>
+                <TemplateMenu type="products" />
+                <Button
+                  variant="outline"
+                  icon={<UploadCloud size={16} />}
+                  onClick={() => navigate('/bulk-upload?type=products')}
+                >
+                  Bulk Upload
+                </Button>
+              </>
+            )}
             {can('products.create') && (
               <Button icon={<Plus size={16} />} onClick={openCreate}>
                 New Product

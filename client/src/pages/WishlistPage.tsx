@@ -47,7 +47,7 @@ export default function WishlistPage() {
             (p) => p.id === wId || p.slug === wId || (p as any)._id === wId
           );
           if (!found) {
-            found = await getProductById(wId);
+            found = (await getProductById(wId)) ?? undefined;
           }
           if (found && !seenIds.has(found.id)) {
             seenIds.add(found.id);

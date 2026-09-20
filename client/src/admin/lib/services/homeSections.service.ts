@@ -1,5 +1,14 @@
-import { api } from '../api';
-import type { Paginated } from '../types';
+import { api, apiList } from '../api';
+import type { ListParams, Paginated } from '../types';
+
+/** A product as the section list endpoint returns it (trimmed projection). */
+export interface SectionProductRef {
+  _id: string;
+  id?: string;
+  name: string;
+  slug: string;
+  image?: string | null;
+}
 
 export interface HomeSectionItem {
   id: string;
@@ -8,20 +17,8 @@ export interface HomeSectionItem {
   subtitle?: string | null;
   badge?: string | null;
   section_type: 'custom_products' | 'category';
-  category_id?: {
-    _id: string;
-    name: string;
-    slug: string;
-  } | string | null;
-  product_ids?: Array<{
-    _id: string;
-    id?: string;
-    name: string;
-    slug: string;
-    price?: number;
-    original_price?: number;
-    image?: string;
-  }> | string[];
+  category_id?: { _id: string; id?: string; name: string; slug: string } | string | null;
+  product_ids?: SectionProductRef[] | string[];
   sort_order: number;
   is_active: boolean;
   created_at?: string;
@@ -39,20 +36,19 @@ export interface HomeSectionInput {
   is_active?: boolean;
 }
 
+// `api.*` already unwraps the `{ success, data }` envelope, so these return the
+// payload directly — there is no extra `.data` to read.
 export const homeSectionsService = {
-  async list(params?: { search?: string; page?: number; pageSize?: number }): Promise<Paginated<HomeSectionItem>> {
-    const res = await api.get<Paginated<HomeSectionItem>>('/home-sections', { params });
-    return res.data;
+  list(params: ListParams = {}): Promise<Paginated<HomeSectionItem>> {
+    return apiList<HomeSectionItem>('/home-sections', params);
   },
 
-  async create(payload: HomeSectionInput): Promise<HomeSectionItem> {
-    const res = await api.post<HomeSectionItem>('/home-sections', payload);
-    return res.data;
+  create(payload: HomeSectionInput): Promise<HomeSectionItem> {
+    return api.post<HomeSectionItem>('/home-sections', payload);
   },
 
-  async update(id: string, payload: Partial<HomeSectionInput>): Promise<HomeSectionItem> {
-    const res = await api.patch<HomeSectionItem>(`/home-sections/${id}`, payload);
-    return res.data;
+  update(id: string, payload: Partial<HomeSectionInput>): Promise<HomeSectionItem> {
+    return api.patch<HomeSectionItem>(`/home-sections/${id}`, payload);
   },
 
   async delete(id: string): Promise<void> {

@@ -16,6 +16,7 @@ import notificationRoutes from '../modules/notifications/notifications.routes.js
 import adminRoutes from '../modules/admins/admins.routes.js';
 import activityRoutes from '../modules/activity/activity.routes.js';
 import customerProfileRoutes from '../modules/customerProfile/customerProfile.routes.js';
+import bulkUploadRoutes from '../modules/bulkUpload/bulkUpload.routes.js';
 
 const router = Router();
 
@@ -28,6 +29,7 @@ router.use('/products', productRoutes);
 router.use('/orders', orderRoutes);
 router.use('/customers', customerRoutes);
 router.use('/categories', categoryRoutes);
+router.use('/bulk-upload', bulkUploadRoutes);
 router.use('/inventory', inventoryRoutes);
 router.use('/banners', bannerRoutes);
 router.use('/home-sections', homeSectionRoutes);

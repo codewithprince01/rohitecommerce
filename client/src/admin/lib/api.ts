@@ -123,6 +123,79 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
   return json.data as T;
 }
 
+/* ------------------------- Binary / multipart I/O ------------------------- */
+
+/**
+ * Authenticated fetch that hands back the raw Response, so callers can read a
+ * file download instead of the JSON envelope. Mirrors `request`'s single
+ * transparent refresh-and-retry on an expired access token.
+ */
+async function authFetch(
+  path: string,
+  init: RequestInit & { params?: RequestOptions['params'] },
+  retried = false
+): Promise<Response> {
+  const { params, headers, ...rest } = init;
+  const finalHeaders: Record<string, string> = { ...((headers as Record<string, string>) ?? {}) };
+  if (tokenStore.access) finalHeaders.Authorization = `Bearer ${tokenStore.access}`;
+
+  let res: Response;
+  try {
+    res = await fetch(buildUrl(path, params), { ...rest, headers: finalHeaders });
+  } catch {
+    throw new ApiError('Cannot reach the server. Is the backend running?', 0);
+  }
+
+  if (res.status === 401 && !retried && tokenStore.refresh) {
+    if (await refreshTokens()) return authFetch(path, init, true);
+    tokenStore.clear();
+  }
+  return res;
+}
+
+/** Turn a failed Response into the same ApiError shape `request` throws. */
+async function throwFromResponse(res: Response): Promise<never> {
+  const json = await res.json().catch(() => null);
+  const message = json?.error?.message || json?.message || `Request failed (${res.status})`;
+  throw new ApiError(message, res.status, json?.error?.details);
+}
+
+/** GET a file (template download). Returns the blob plus the server's filename. */
+export async function apiDownload(
+  path: string,
+  params?: RequestOptions['params']
+): Promise<{ blob: Blob; filename: string | null }> {
+  const res = await authFetch(path, { method: 'GET', params });
+  if (!res.ok) await throwFromResponse(res);
+  const disposition = res.headers.get('Content-Disposition') ?? '';
+  const match = /filename\*?=(?:UTF-8'')?"?([^";]+)"?/i.exec(disposition);
+  return { blob: await res.blob(), filename: match ? decodeURIComponent(match[1]) : null };
+}
+
+/** POST multipart form data (file upload) and unwrap the JSON envelope. */
+export async function apiUpload<T>(path: string, form: FormData): Promise<T> {
+  // No Content-Type header: the browser must set the multipart boundary itself.
+  const res = await authFetch(path, { method: 'POST', body: form });
+  const json = await res.json().catch(() => null);
+  if (!res.ok || !json?.success) {
+    const message = json?.error?.message || json?.message || `Upload failed (${res.status})`;
+    throw new ApiError(message, res.status, json?.error?.details);
+  }
+  return json.data as T;
+}
+
+/** Save a blob to disk under the given filename. */
+export function saveBlob(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
 export const api = {
   get: <T>(path: string, params?: RequestOptions['params']) => request<T>(path, { params }),
   post: <T>(path: string, body?: unknown, opts?: RequestOptions) =>

@@ -558,7 +558,8 @@ export type Category = Database['public']['Tables']['categories']['Row'] & {
 
 export type Subcategory = Database['public']['Tables']['subcategories']['Row'] & {
   brands?: Brand[];
-  category?: Category;
+  /** Parent summary as the list endpoint returns it — not the full category row. */
+  category?: Pick<Category, 'id' | 'name' | 'slug'>;
   product_count?: number;
   brand_count?: number;
 };

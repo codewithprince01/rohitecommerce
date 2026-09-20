@@ -193,7 +193,7 @@ export default function CartPage() {
       quantityLabel: item.variant.quantity,
       price: item.variant.price,
       quantity: item.quantity,
-      image: item.product.image,
+      image: item.product.image ?? undefined,
     }));
 
     const now = new Date();

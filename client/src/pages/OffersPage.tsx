@@ -64,7 +64,11 @@ export default function OffersPage() {
     }
     return prods;
   }, [offerDeals]);
-      const aDisc = a.variants?.[0]?.discount || 
+
+  // Every product, biggest saving first, then narrowed by the selected chip.
+  const offerProducts = useMemo(() => {
+    const sorted = [...products].sort((a, b) => {
+      const aDisc = a.variants?.[0]?.discount ||
         ((a.variants?.[0]?.original_price || 0) - (a.variants?.[0]?.price || 0));
       const bDisc = b.variants?.[0]?.discount || 
         ((b.variants?.[0]?.original_price || 0) - (b.variants?.[0]?.price || 0));

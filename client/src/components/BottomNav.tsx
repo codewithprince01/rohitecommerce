@@ -1,11 +1,11 @@
 import React from 'react';
-import { Home, Grid3X3, ShoppingCart, User, Leaf, Tag, Heart } from 'lucide-react';
+import { Home, Grid3X3, ShoppingCart, User, Leaf, Tag, Heart, type LucideIcon } from 'lucide-react';
 import { useApp, PageType } from '../context/AppContext';
 
 interface NavItem {
   id: PageType;
   label: string;
-  icon: React.ComponentType<{ size?: number; className?: string; strokeWidth?: number }>;
+  icon: LucideIcon;
   badge?: string;
 }
 

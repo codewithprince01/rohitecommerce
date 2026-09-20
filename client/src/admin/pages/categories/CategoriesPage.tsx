@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
-  Plus, Pencil, Trash2, ImageOff, RefreshCw, Layers, FolderTree, Tag, Package,
+  Plus, Pencil, Trash2, ImageOff, RefreshCw, Layers, FolderTree, Tag, Package, UploadCloud,
   AlertTriangle, TrendingUp,
 } from 'lucide-react';
 import PageHeader from '../../components/ui/PageHeader';
@@ -18,12 +19,14 @@ import { useConfirm } from '../../hooks/useConfirm';
 import { useAdminAuth } from '../../context/AdminAuthContext';
 import { useAsync } from '../../hooks/useAsync';
 import * as catalog from '../../lib/services/catalog.service';
+import TemplateMenu from '../../components/bulk/TemplateMenu';
 import type { Category, Subcategory, Brand, CatalogStats } from '../../lib/services/catalog.service';
 
 type Tab = 'categories' | 'subcategories' | 'brands';
 
 export default function CategoriesPage() {
   const { can } = useAdminAuth();
+  const navigate = useNavigate();
   const [tab, setTab] = useState<Tab>('categories');
   const canManage = can('categories.manage');
 
@@ -41,9 +44,19 @@ export default function CategoriesPage() {
         title="Catalog Structure"
         subtitle="Organise the category → subcategory → brand hierarchy that powers your storefront."
         actions={
-          <Button variant="outline" icon={<RefreshCw size={16} />} onClick={reloadStats}>
-            Refresh
-          </Button>
+          <>
+            <Button variant="outline" icon={<RefreshCw size={16} />} onClick={reloadStats}>
+              Refresh
+            </Button>
+            {canManage && (
+              <>
+                <TemplateMenu type="catalog" />
+                <Button icon={<UploadCloud size={16} />} onClick={() => navigate('/bulk-upload?type=catalog')}>
+                  Bulk Upload
+                </Button>
+              </>
+            )}
+          </>
         }
       />
 

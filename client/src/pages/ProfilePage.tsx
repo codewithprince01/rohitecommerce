@@ -485,7 +485,7 @@ export default function ProfilePage() {
   // Loading & feedback states
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
-  const [toastMessage, setToastMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
+  const [toastMessage, setToastMessage] = useState<{ text: string; type: 'success' | 'error' | 'info' } | null>(null);
 
   // Orders Search, Filter, Sort, Timeframe & Expanded state
   const [orderSearch, setOrderSearch] = useState('');
@@ -635,7 +635,7 @@ export default function ProfilePage() {
   // Logout confirm modal
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
-  const showToast = (text: string, type: 'success' | 'error' = 'success') => {
+  const showToast = (text: string, type: 'success' | 'error' | 'info' = 'success') => {
     setToastMessage({ text, type });
     setTimeout(() => setToastMessage(null), 3500);
   };
