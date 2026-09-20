@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   Package,
   MapPin,
@@ -17,6 +17,7 @@ import {
   RotateCcw,
   Sparkles,
   ShoppingBag,
+  ShoppingCart,
   Send,
   Copy,
   Check,
@@ -99,7 +100,8 @@ import {
   type CouponItem,
   type SupportTicketItem,
 } from '../lib/profileApi';
-import ProfileSettingsView from '../components/profile/ProfileSettingsView';
+import ProfileSettingsView, { DEFAULT_AVATAR, compressAvatar } from '../components/profile/ProfileSettingsView';
+import DeliveryLocationModal from '../components/DeliveryLocationModal';
 
 export const formatOrderDateTime = (dateVal?: string | Date | null) => {
   if (!dateVal) {
@@ -423,7 +425,16 @@ const FALLBACK_ORDERS: OrderData[] = [
 ];
 
 export default function ProfilePage() {
-  const { state, navigate, setProfileTab, cartCount, addToCart, setCart } = useApp();
+  const {
+    state,
+    navigate,
+    setProfileTab,
+    cartCount,
+    addToCart,
+    setCart,
+    deliveryLocation,
+    setDeliveryLocation,
+  } = useApp();
   const currentTab: ProfileTabType = state.profileTab || 'orders';
 
   // State loaded from MongoDB backend
@@ -433,6 +444,43 @@ export default function ProfilePage() {
   const [wallet, setWallet] = useState<WalletData | null>(null);
   const [coupons, setCoupons] = useState<CouponItem[]>([]);
   const [tickets, setTickets] = useState<SupportTicketItem[]>([]);
+
+  // Delivery Location Modal
+  const [locationModalOpen, setLocationModalOpen] = useState(false);
+
+  // Active default address of whichever account is logged in
+  const defaultAccountAddress = useMemo(() => {
+    return addresses.find((a) => a.is_default) || addresses[0] || null;
+  }, [addresses]);
+
+  const activeDisplayAddress = useMemo(() => {
+    if (defaultAccountAddress) {
+      return (
+        defaultAccountAddress.landmark ||
+        defaultAccountAddress.line2 ||
+        defaultAccountAddress.line1.split(',')[0] ||
+        defaultAccountAddress.city ||
+        'Ram Mandir Chauraha'
+      );
+    }
+    return deliveryLocation?.area || deliveryLocation?.city || 'Ram Mandir Chauraha';
+  }, [defaultAccountAddress, deliveryLocation]);
+
+  // Keep deliveryLocation synchronized with default address of current customer account
+  useEffect(() => {
+    if (defaultAccountAddress && setDeliveryLocation) {
+      setDeliveryLocation({
+        city: defaultAccountAddress.city || 'Sabalgarh',
+        area:
+          defaultAccountAddress.landmark ||
+          defaultAccountAddress.line2 ||
+          defaultAccountAddress.line1.split(',')[0] ||
+          'Ram Mandir Chauraha',
+        pincode: defaultAccountAddress.pincode || '476229',
+        addressLabel: defaultAccountAddress.label || 'Home',
+      });
+    }
+  }, [defaultAccountAddress]);
 
   // Loading & feedback states
   const [loading, setLoading] = useState(true);
@@ -471,9 +519,7 @@ export default function ProfilePage() {
   const [issueDescription, setIssueDescription] = useState<string>('');
   const [selectedIssueItems, setSelectedIssueItems] = useState<string[]>([]);
 
-  // Address Search & Filters
-  const [addressSearch, setAddressSearch] = useState('');
-  const [addressFilter, setAddressFilter] = useState<'all' | 'Home' | 'Work' | 'Friends & Family' | 'Other'>('all');
+  // Address Modal State
   const [addressModalOpen, setAddressModalOpen] = useState(false);
   const [editingAddress, setEditingAddress] = useState<AddressItem | null>(null);
   const [deletingAddress, setDeletingAddress] = useState<AddressItem | null>(null);
@@ -502,16 +548,76 @@ export default function ProfilePage() {
   const [couponResult, setCouponResult] = useState<{ success: boolean; text: string } | null>(null);
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
 
-  // Settings Form State for Left Sidebar Preview
-  const [settingsForm, setSettingsForm] = useState({
-    name: 'Aarav Sharma',
-    email: 'aarav.sharma@example.com',
-    phone: '+91 99066 72945',
-    gender: 'male',
-    dob: '1996-08-15',
-    alternatePhone: '+91 98112 34567',
-    avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=compress&cs=tinysrgb&w=200',
+  // Settings Form State for Left Sidebar Preview - Initialized from localStorage to eliminate flicker
+  const [settingsForm, setSettingsForm] = useState(() => {
+    let savedSettings: any = null;
+    try {
+      const s = localStorage.getItem('freshmart_customer_settings');
+      if (s) savedSettings = JSON.parse(s);
+    } catch (e) {}
+
+    const av =
+      savedSettings?.avatar && !savedSettings.avatar.includes('photo-1535713875002')
+        ? savedSettings.avatar
+        : DEFAULT_AVATAR;
+
+    return {
+      name: savedSettings?.name || 'Diya Patel',
+      email: savedSettings?.email || 'diya.patel@example.com',
+      phone: savedSettings?.phone || '9657989989',
+      gender: savedSettings?.gender || 'female',
+      dob: savedSettings?.dob || '1996-08-15',
+      alternatePhone: savedSettings?.alternatePhone || '+91 98112 34567',
+      avatar: av,
+    };
   });
+
+  // Hidden File Input Ref for 1-Click Upload from Sidebar or Mobile Header
+  const sidebarFileInputRef = useRef<HTMLInputElement>(null);
+
+  // Handle direct 1-click photo upload from Left Sidebar / Mobile Header
+  const handleSidebarAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 15 * 1024 * 1024) {
+      showToast('Image size should be under 15MB', 'error');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      try {
+        const rawDataUrl = event.target?.result as string;
+        if (!rawDataUrl) return;
+
+        // Compress and optimize to lightweight 400x400 avatar
+        const compressedDataUrl = await compressAvatar(rawDataUrl, 400, 0.88);
+
+        // 1. Instantly update ProfilePage state (both sidebar and settings hero sync)
+        setSettingsForm((prev) => ({ ...prev, avatar: compressedDataUrl }));
+        setProfile((prev) => (prev ? { ...prev, avatar: compressedDataUrl } : null));
+
+        // 2. Instantly save to LocalStorage
+        try {
+          const saved = localStorage.getItem('freshmart_customer_settings');
+          const parsed = saved ? JSON.parse(saved) : {};
+          parsed.avatar = compressedDataUrl;
+          localStorage.setItem('freshmart_customer_settings', JSON.stringify(parsed));
+        } catch (err) {}
+
+        // 3. Persist in MongoDB database
+        await updateProfile({ avatar: compressedDataUrl });
+        showToast('Profile photo updated & saved to database! 📸');
+      } catch (err) {
+        console.error('Failed to update avatar in DB:', err);
+        showToast('Profile photo updated locally! 📸');
+      } finally {
+        if (e.target) e.target.value = '';
+      }
+    };
+    reader.readAsDataURL(file);
+  };
 
   // Support Ticket Form
   const [newTicketForm, setNewTicketForm] = useState({
@@ -553,18 +659,37 @@ export default function ProfilePage() {
         if (saved) localSettings = JSON.parse(saved);
       } catch (e) {}
 
+      const resolvedAvatar =
+        (profileData?.avatar && !profileData.avatar.includes('photo-1535713875002') ? profileData.avatar : null) ||
+        (localSettings?.avatar && !localSettings.avatar.includes('photo-1535713875002') ? localSettings.avatar : null) ||
+        DEFAULT_AVATAR;
+
       if (profileData || localSettings) {
-        if (profileData) setProfile(profileData);
+        if (profileData) {
+          setProfile({ ...profileData, avatar: resolvedAvatar });
+        }
         setSettingsForm((prev) => ({
           ...prev,
-          name: localSettings?.name || profileData?.name || prev.name,
-          email: localSettings?.email || profileData?.email || prev.email,
-          phone: localSettings?.phone || profileData?.phone || prev.phone,
-          avatar: localSettings?.avatar || profileData?.avatar || prev.avatar,
-          gender: localSettings?.gender || profileData?.gender || prev.gender,
-          dob: localSettings?.dob || profileData?.dob || prev.dob,
-          alternatePhone: localSettings?.alternatePhone || profileData?.alternate_phone || prev.alternatePhone,
+          name: profileData?.name || localSettings?.name || prev.name,
+          email: profileData?.email || localSettings?.email || prev.email,
+          phone: profileData?.phone || localSettings?.phone || prev.phone,
+          avatar: resolvedAvatar,
+          gender: profileData?.gender || localSettings?.gender || prev.gender,
+          dob: profileData?.dob || localSettings?.dob || prev.dob,
+          alternatePhone: profileData?.alternate_phone || localSettings?.alternatePhone || prev.alternatePhone,
         }));
+
+        // Keep local storage fresh with resolved avatar so it never disappears on reload
+        try {
+          const toStore = {
+            ...(localSettings || {}),
+            avatar: resolvedAvatar,
+            name: profileData?.name || localSettings?.name || 'Diya Patel',
+            phone: profileData?.phone || localSettings?.phone || '9657989989',
+            email: profileData?.email || localSettings?.email || 'diya.patel@example.com',
+          };
+          localStorage.setItem('freshmart_customer_settings', JSON.stringify(toStore));
+        } catch (e) {}
       }
       let localPlacedOrders: OrderData[] = [];
       try {
@@ -1076,14 +1201,7 @@ export default function ProfilePage() {
     if (o) {
       handleOpenReportIssue(o);
     } else {
-      setNewTicketForm({
-        category: 'Order Issue',
-        order_number: orderNumber,
-        subject: `Issue regarding order #${orderNumber}`,
-        message: `Hi team, I need assistance with my order #${orderNumber}.`,
-      });
-      setProfileTab('support');
-      showToast(`Support form pre-filled with Order #${orderNumber}`);
+      showToast(`For assistance with Order #${orderNumber}, call us at +91 9285108057`);
     }
   };
 
@@ -1393,26 +1511,6 @@ export default function ProfilePage() {
       return new Date(b.placed_at).getTime() - new Date(a.placed_at).getTime();
     });
 
-  // Filtered & Searched Addresses
-  const filteredAddresses = addresses
-    .filter((addr) => {
-      if (addressFilter === 'all') return true;
-      return addr.label.toLowerCase() === addressFilter.toLowerCase();
-    })
-    .filter((addr) => {
-      if (!addressSearch.trim()) return true;
-      const q = addressSearch.toLowerCase();
-      return (
-        addr.line1.toLowerCase().includes(q) ||
-        (addr.line2 && addr.line2.toLowerCase().includes(q)) ||
-        (addr.landmark && addr.landmark.toLowerCase().includes(q)) ||
-        addr.city.toLowerCase().includes(q) ||
-        addr.pincode.toLowerCase().includes(q) ||
-        addr.label.toLowerCase().includes(q) ||
-        (addr.receiver_name && addr.receiver_name.toLowerCase().includes(q))
-      );
-    });
-
   const defaultAddr = addresses.find((a) => a.is_default);
 
   const navItems = [
@@ -1443,15 +1541,6 @@ export default function ProfilePage() {
       badgeColor: '',
       iconBg: 'bg-purple-50 text-purple-600',
     },
-    {
-      id: 'support' as ProfileTabType,
-      label: 'Customer Support',
-      subtitle: '24x7 help desk, past tickets & FAQs',
-      icon: HelpCircle,
-      badge: undefined,
-      badgeColor: '',
-      iconBg: 'bg-amber-50 text-amber-600',
-    },
   ];
 
   return (
@@ -1475,28 +1564,67 @@ export default function ProfilePage() {
       {/* TOP BAR: Clean edge-to-edge navbar */}
       <header className="sticky top-0 z-40 w-full bg-white border-b border-neutral-200/90 shadow-2xs">
         <div className="max-w-6xl mx-auto px-3 sm:px-6 h-14 sm:h-16 flex items-center justify-between">
-          {/* Mobile view header */}
-          <div className="flex sm:hidden items-center gap-2 flex-1 min-w-0 mr-2">
-            <button
-              type="button"
-              onClick={handleBack}
-              className="w-9 h-9 -ml-1 rounded-xl flex items-center justify-center text-neutral-700 hover:bg-neutral-100 active:scale-95 transition-all shrink-0"
-              aria-label="Back"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </button>
-            <div className="min-w-0">
-              <h1 className="text-base font-extrabold text-neutral-900 truncate">
+          {/* Mobile view header: Back button + Title on Left, Delivery Address + Cart on Right */}
+          <div className="flex sm:hidden items-center justify-between w-full gap-1.5 min-w-0">
+            <div className="flex items-center gap-1.5 min-w-0 shrink-0">
+              <button
+                type="button"
+                onClick={handleBack}
+                className="w-8 h-8 -ml-1 rounded-xl flex items-center justify-center text-neutral-700 hover:bg-neutral-100 active:scale-95 transition-all shrink-0"
+                aria-label="Back"
+              >
+                <ArrowLeft className="w-5 h-5" />
+              </button>
+              <h1 className="text-sm font-extrabold text-neutral-900 truncate max-w-[85px]">
                 {mobileMenuOpen
-                  ? 'My Account'
+                  ? 'Account'
                   : currentTab === 'orders'
-                  ? (trackingOrder ? 'Track Order' : 'My Orders')
+                  ? (trackingOrder ? 'Track' : 'Orders')
                   : currentTab === 'addresses'
-                  ? 'Saved Addresses'
-                  : currentTab === 'settings'
-                  ? 'Profile & Settings'
-                  : 'Customer Support'}
+                  ? 'Addresses'
+                  : currentTab === 'wallet'
+                  ? 'Wallet'
+                  : currentTab === 'coupons'
+                  ? 'Coupons'
+                  : 'Settings'}
               </h1>
+            </div>
+
+            {/* Delivery address button + Cart icon matching exactly user screenshot */}
+            <div className="flex items-center gap-2 min-w-0 justify-end flex-1">
+              <button
+                type="button"
+                onClick={() => setLocationModalOpen(true)}
+                className="flex items-center gap-1.5 min-w-0 text-left hover:opacity-90 active:scale-95 transition-all cursor-pointer"
+                title="Change delivery location"
+              >
+                <div className="w-7 h-7 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0">
+                  <MapPin size={14} className="text-emerald-700" />
+                </div>
+                <div className="min-w-0 text-left">
+                  <div className="flex items-center gap-0.5">
+                    <span className="text-[10px] text-neutral-500 font-medium leading-none">Deliver to</span>
+                    <ChevronDown size={11} className="text-neutral-400" />
+                  </div>
+                  <span className="text-xs font-bold text-neutral-800 block truncate max-w-[100px] sm:max-w-[130px]">
+                    {activeDisplayAddress}
+                  </span>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => navigate('cart')}
+                className="relative w-9 h-9 rounded-full bg-neutral-100 hover:bg-neutral-200 flex items-center justify-center transition-colors active:scale-95 shrink-0"
+                aria-label="Cart"
+              >
+                <ShoppingCart size={17} className="text-neutral-700" />
+                {cartCount > 0 && (
+                  <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-emerald-600 text-white text-[10px] font-bold flex items-center justify-center">
+                    {cartCount}
+                  </span>
+                )}
+              </button>
             </div>
           </div>
 
@@ -1504,7 +1632,7 @@ export default function ProfilePage() {
           <div className="hidden sm:flex items-center gap-4">
             <button
               onClick={handleBack}
-              className="flex items-center gap-1.5 text-xs sm:text-sm font-bold text-neutral-700 hover:text-emerald-600 transition-colors py-1.5 px-2.5 rounded-lg hover:bg-emerald-50 group"
+              className="flex items-center gap-1.5 text-xs sm:text-sm font-bold text-neutral-700 hover:text-emerald-600 transition-colors py-1.5 px-2.5 rounded-lg hover:bg-emerald-50 group cursor-pointer"
             >
               <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
               <span>{!mobileMenuOpen ? 'Back to Menu' : 'Back to Store'}</span>
@@ -1519,14 +1647,33 @@ export default function ProfilePage() {
             </div>
           </div>
 
-          {/* Right side: Quick Cart */}
-          <div className="flex items-center gap-2 shrink-0">
+          {/* Desktop Right side: Deliver to + Quick Cart */}
+          <div className="hidden sm:flex items-center gap-3 shrink-0">
             <button
-              onClick={() => navigate('cart')}
-              className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-700 hover:bg-emerald-100 font-bold text-xs transition-colors border border-emerald-200/60"
+              type="button"
+              onClick={() => setLocationModalOpen(true)}
+              className="flex items-center gap-2 px-3 py-1.5 rounded-xl hover:bg-neutral-50 transition-colors border border-transparent hover:border-neutral-200 text-left cursor-pointer"
+              title="Change delivery location"
             >
-              <ShoppingBag className="w-4 h-4" />
-              <span className="hidden sm:inline">Cart</span>
+              <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0">
+                <MapPin size={15} className="text-emerald-700" />
+              </div>
+              <div className="text-left">
+                <p className="text-[11px] text-neutral-500 font-medium leading-none">Deliver to</p>
+                <p className="text-xs font-bold text-neutral-800 flex items-center gap-1 mt-0.5">
+                  <span className="truncate max-w-[140px]">{activeDisplayAddress}</span>
+                  <ChevronDown size={12} className="text-neutral-400" />
+                </p>
+              </div>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => navigate('cart')}
+              className="flex items-center gap-1.5 sm:gap-2 px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-700 hover:bg-emerald-100 font-bold text-xs transition-colors border border-emerald-200/60 cursor-pointer"
+            >
+              <ShoppingCart className="w-4 h-4" />
+              <span>Cart</span>
               {cartCount > 0 && (
                 <span className="w-5 h-5 rounded-full bg-emerald-600 text-white text-[10px] font-black flex items-center justify-center">
                   {cartCount}
@@ -1539,18 +1686,37 @@ export default function ProfilePage() {
 
       {/* MAIN CONTAINER: Centered max-w-6xl with Responsive Layout */}
       <div className="max-w-6xl mx-auto w-full px-3 sm:px-6 py-4 sm:py-7 flex-1">
+        {/* Hidden input for 1-click photo upload anywhere from sidebar or header */}
+        <input
+          type="file"
+          ref={sidebarFileInputRef}
+          onChange={handleSidebarAvatarUpload}
+          accept="image/*"
+          className="hidden"
+        />
+
         {/* MOBILE ACCOUNT MENU: Rendered exclusively on mobile when mobileMenuOpen is true */}
         {mobileMenuOpen && (
           <div className="lg:hidden space-y-3.5 w-full pb-8 animate-in fade-in duration-200">
             {/* User Profile Card */}
             <div className="bg-white rounded-2xl border border-neutral-200/90 shadow-2xs p-4">
               <div className="flex items-center gap-3.5">
-                <div className="relative shrink-0">
+                <div
+                  onClick={() => sidebarFileInputRef.current?.click()}
+                  className="relative shrink-0 group cursor-pointer"
+                  title="Click to choose photo from device"
+                >
                   <img
-                    src={settingsForm.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=compress&cs=tinysrgb&w=150'}
+                    src={settingsForm.avatar || DEFAULT_AVATAR}
                     alt="Avatar"
-                    className="w-14 h-14 rounded-full object-cover border-2 border-emerald-500/30 shadow-xs"
+                    className="w-14 h-14 rounded-full object-cover border-2 border-emerald-500/30 shadow-xs group-hover:brightness-95 transition-all bg-white"
                   />
+                  <div className="absolute inset-0 rounded-full bg-black/35 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white">
+                    <Camera className="w-4 h-4" />
+                  </div>
+                  <div className="absolute -bottom-1 -right-1 p-1.5 rounded-full bg-neutral-900 group-hover:bg-emerald-600 text-white shadow-xs border border-white transition-colors">
+                    <Camera className="w-3 h-3" />
+                  </div>
                 </div>
                 <div className="flex-1 min-w-0">
                   <h2 className="text-base font-extrabold text-neutral-900 truncate">
@@ -1608,14 +1774,14 @@ export default function ProfilePage() {
 
               <button
                 type="button"
-                onClick={() => handleTabChange('support')}
-                className="bg-white p-3 rounded-2xl border border-neutral-200/90 shadow-2xs flex flex-col items-center text-center hover:border-amber-300 active:scale-95 transition-all"
+                onClick={() => handleTabChange('settings')}
+                className="bg-white p-3 rounded-2xl border border-neutral-200/90 shadow-2xs flex flex-col items-center text-center hover:border-emerald-300 active:scale-95 transition-all"
               >
-                <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center mb-1">
-                  <HelpCircle className="w-4 h-4" />
+                <div className="w-8 h-8 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center mb-1">
+                  <Settings className="w-4 h-4" />
                 </div>
-                <span className="text-xs font-bold text-neutral-900">Support</span>
-                <span className="text-[10px] font-semibold text-amber-600">24x7 Help</span>
+                <span className="text-xs font-bold text-neutral-900">Settings</span>
+                <span className="text-[10px] font-semibold text-emerald-600">Profile</span>
               </button>
             </div>
 
@@ -1688,12 +1854,22 @@ export default function ProfilePage() {
             <div className="bg-white rounded-2xl border border-neutral-200/90 shadow-xs p-4 sm:p-5 space-y-4">
               {/* User Profile Card */}
               <div className="flex items-center gap-3 pb-3.5 border-b border-neutral-100">
-                <div className="relative shrink-0">
+                <div
+                  onClick={() => sidebarFileInputRef.current?.click()}
+                  className="relative shrink-0 group cursor-pointer"
+                  title="Click to choose photo from device"
+                >
                   <img
-                    src={settingsForm.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=compress&cs=tinysrgb&w=150'}
+                    src={settingsForm.avatar || DEFAULT_AVATAR}
                     alt="Avatar"
-                    className="w-12 h-12 rounded-full object-cover border-2 border-emerald-500/30"
+                    className="w-12 h-12 rounded-full object-cover border-2 border-emerald-500/30 shadow-2xs group-hover:border-emerald-500 group-hover:brightness-95 transition-all bg-white"
                   />
+                  <div className="absolute inset-0 rounded-full bg-black/35 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white">
+                    <Camera className="w-3.5 h-3.5" />
+                  </div>
+                  <div className="absolute -bottom-1 -right-1 p-1 rounded-full bg-neutral-900 group-hover:bg-emerald-600 text-white shadow-xs border border-white transition-colors">
+                    <Camera className="w-2.5 h-2.5" />
+                  </div>
                 </div>
                 <div className="flex-1 min-w-0">
                   <h2 className="text-sm font-bold text-neutral-900 truncate">
@@ -2312,60 +2488,13 @@ export default function ProfilePage() {
                     </button>
                   </div>
 
-                  {/* Search and Category Filter Toolbar */}
-                  <div className="bg-white rounded-2xl border border-neutral-200 p-4 shadow-xs flex flex-col md:flex-row gap-3 items-center justify-between">
-                    <div className="relative w-full md:w-80">
-                      <Search className="w-4 h-4 text-neutral-400 absolute left-3 top-3" />
-                      <input
-                        type="text"
-                        placeholder="Search flat, society, landmark or pincode..."
-                        value={addressSearch}
-                        onChange={(e) => setAddressSearch(e.target.value)}
-                        className="w-full pl-9 pr-3 py-2 rounded-xl border border-neutral-200 text-xs font-medium focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-                      />
-                      {addressSearch && (
-                        <button
-                          onClick={() => setAddressSearch('')}
-                          className="absolute right-3 top-2.5 text-neutral-400 hover:text-neutral-600"
-                        >
-                          <X className="w-3.5 h-3.5" />
-                        </button>
-                      )}
-                    </div>
-
-                    <div className="flex items-center gap-1.5 bg-neutral-100 p-1 rounded-xl self-stretch md:self-auto overflow-x-auto">
-                      {(['all', 'Home', 'Work', 'Friends & Family', 'Other'] as const).map((filter) => {
-                        const count =
-                          filter === 'all'
-                            ? addresses.length
-                            : addresses.filter((a) => a.label.toLowerCase() === filter.toLowerCase()).length;
-
-                        return (
-                          <button
-                            key={filter}
-                            onClick={() => setAddressFilter(filter)}
-                            className={`text-xs font-bold px-3 py-1.5 rounded-lg capitalize transition-all whitespace-nowrap ${
-                              addressFilter === filter
-                                ? 'bg-white text-emerald-800 shadow-xs'
-                                : 'text-neutral-600 hover:text-neutral-900'
-                            }`}
-                          >
-                            {filter} ({count})
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-
                   {/* Addresses Cards Grid */}
-                  {filteredAddresses.length === 0 ? (
+                  {addresses.length === 0 ? (
                     <div className="bg-white rounded-2xl border border-neutral-200 p-12 text-center">
                       <MapPin className="w-14 h-14 text-neutral-300 mx-auto mb-3" />
                       <h3 className="text-base font-bold text-neutral-800">No saved addresses found</h3>
                       <p className="text-xs text-neutral-500 mt-1 max-w-sm mx-auto">
-                        {addressSearch
-                          ? `No saved locations matching "${addressSearch}".`
-                          : "You haven't saved any addresses in this category yet."}
+                        You haven't saved any delivery addresses yet. Add an address for faster checkout.
                       </p>
                       <button
                         onClick={openAddAddressModal}
@@ -2376,7 +2505,7 @@ export default function ProfilePage() {
                     </div>
                   ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {filteredAddresses.map((addr) => {
+                      {addresses.map((addr) => {
                         const isDefault = addr.is_default;
                         const labelLower = addr.label.toLowerCase();
                         const LabelIcon =
@@ -2547,193 +2676,6 @@ export default function ProfilePage() {
                     }));
                   }}
                 />
-              )}
-
-              {/* TAB 6: 24X7 CUSTOMER SUPPORT */}
-              {currentTab === 'support' && (
-                <div className="space-y-6">
-                  <div>
-                    <h1 className="text-xl font-black text-neutral-900 tracking-tight">24x7 Customer Support</h1>
-                    <p className="text-xs text-neutral-500 mt-0.5">
-                      Need help with an order, payment, or delivery? Our dedicated instant support team is live 24x7.
-                    </p>
-                  </div>
-
-                  <form onSubmit={handleCreateTicket} className="bg-white rounded-2xl border border-neutral-200 p-5 shadow-xs space-y-3">
-                    <h3 className="text-sm font-black text-neutral-900">Raise a Support Ticket</h3>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div>
-                        <label className="text-xs font-bold text-neutral-700 block mb-1">Issue Category</label>
-                        <select
-                          value={newTicketForm.category}
-                          onChange={(e) => setNewTicketForm({ ...newTicketForm, category: e.target.value })}
-                          className="w-full px-3 py-2 rounded-xl border border-neutral-200 text-xs font-medium focus:ring-2 focus:ring-emerald-500"
-                        >
-                          <option>Order Issue</option>
-                          <option>Delivery Delay</option>
-                          <option>Payment & Refund</option>
-                          <option>Product Quality</option>
-                          <option>General Query</option>
-                        </select>
-                      </div>
-                      <div>
-                        <label className="text-xs font-bold text-neutral-700 block mb-1">Related Order Number (Optional)</label>
-                        <input
-                          type="text"
-                          placeholder="e.g. GRO922820891"
-                          value={newTicketForm.order_number}
-                          onChange={(e) => setNewTicketForm({ ...newTicketForm, order_number: e.target.value })}
-                          className="w-full px-3 py-2 rounded-xl border border-neutral-200 text-xs font-medium focus:ring-2 focus:ring-emerald-500"
-                        />
-                      </div>
-                    </div>
-                    <div>
-                      <label className="text-xs font-bold text-neutral-700 block mb-1">Subject</label>
-                      <input
-                        type="text"
-                        placeholder="Brief summary of your issue"
-                        value={newTicketForm.subject}
-                        onChange={(e) => setNewTicketForm({ ...newTicketForm, subject: e.target.value })}
-                        className="w-full px-3 py-2 rounded-xl border border-neutral-200 text-xs font-medium focus:ring-2 focus:ring-emerald-500"
-                        required
-                      />
-                    </div>
-                    <div>
-                      <label className="text-xs font-bold text-neutral-700 block mb-1">Message Details</label>
-                      <textarea
-                        rows={3}
-                        placeholder="Describe what happened so our team can resolve it immediately..."
-                        value={newTicketForm.message}
-                        onChange={(e) => setNewTicketForm({ ...newTicketForm, message: e.target.value })}
-                        className="w-full px-3 py-2 rounded-xl border border-neutral-200 text-xs font-medium focus:ring-2 focus:ring-emerald-500"
-                        required
-                      />
-                    </div>
-                    <div className="flex justify-end">
-                      <button
-                        type="submit"
-                        disabled={actionLoading}
-                        className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-colors shadow-xs"
-                      >
-                        Submit Ticket
-                      </button>
-                    </div>
-                  </form>
-
-                  <div className="space-y-4">
-                    <h3 className="text-sm font-black text-neutral-900">Your Support Tickets</h3>
-                    {tickets.length === 0 ? (
-                      <p className="text-xs text-neutral-400">No support tickets found.</p>
-                    ) : (
-                      tickets.map((t) => (
-                        <div key={t._id} className="bg-white rounded-2xl border border-neutral-200 p-5 shadow-xs space-y-3">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <span className="text-xs font-black text-neutral-900">{t.ticket_number}</span>
-                              <span className="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 text-[10px] font-bold">
-                                {t.category}
-                              </span>
-                              <span
-                                className={`px-2 py-0.5 rounded text-[10px] font-bold capitalize ${
-                                  t.status === 'resolved' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
-                                }`}
-                              >
-                                {t.status}
-                              </span>
-                            </div>
-                            <span className="text-[11px] text-neutral-400">
-                              {new Date(t.created_at).toLocaleDateString()}
-                            </span>
-                          </div>
-
-                          <p className="text-xs font-bold text-neutral-800">{t.subject}</p>
-
-                          <div className="bg-slate-50 rounded-xl p-3 space-y-2 text-xs border border-neutral-100">
-                            {t.responses?.map((r, i) => (
-                              <div
-                                key={i}
-                                className={`flex flex-col ${
-                                  r.sender === 'customer' ? 'items-end' : 'items-start'
-                                }`}
-                              >
-                                <div
-                                  className={`max-w-[85%] px-3 py-2 rounded-xl text-xs ${
-                                    r.sender === 'customer'
-                                      ? 'bg-emerald-600 text-white rounded-br-none'
-                                      : 'bg-white border border-neutral-200 text-neutral-800 rounded-bl-none shadow-xs'
-                                  }`}
-                                >
-                                  <span className="text-[10px] font-bold block mb-0.5 opacity-70">
-                                    {r.sender === 'customer' ? 'You' : 'Agrawal Store Support Specialist'}
-                                  </span>
-                                  {r.message}
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-
-                          {t.status !== 'resolved' && (
-                            <div className="flex gap-2 pt-2">
-                              <input
-                                type="text"
-                                placeholder="Type a reply..."
-                                value={activeTicketId === t._id ? ticketReplyText : ''}
-                                onFocus={() => setActiveTicketId(t._id)}
-                                onChange={(e) => {
-                                  setActiveTicketId(t._id);
-                                  setTicketReplyText(e.target.value);
-                                }}
-                                className="flex-1 px-3 py-1.5 rounded-lg border border-neutral-200 text-xs font-medium"
-                              />
-                              <button
-                                onClick={() => handleSendTicketReply(t._id)}
-                                disabled={actionLoading}
-                                className="px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700"
-                              >
-                                Reply
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                      ))
-                    )}
-                  </div>
-
-                  <div className="bg-white rounded-2xl border border-neutral-200 p-5 shadow-xs space-y-3">
-                    <h3 className="text-sm font-black text-neutral-900">Frequently Asked Questions</h3>
-                    <div className="divide-y divide-neutral-100 text-xs">
-                      {[
-                        {
-                          q: 'How does instant delivery work?',
-                          a: 'Agrawal General & Provisional Store operates quick local fulfillment from our Sabalgarh store. Once an order is confirmed, our team packs it immediately and dispatches directly to your location.',
-                        },
-                        {
-                          q: 'What is FreshPass VIP membership?',
-                          a: 'FreshPass offers unlimited Free Instant Delivery on all orders, exclusive member-only discounts, and 10% instant cashback on fresh fruits & vegetables.',
-                        },
-                        {
-                          q: 'How do refunds work on cancelled orders?',
-                          a: 'Since all orders are Cash on Delivery, no payment is charged online. When an order is cancelled, you do not need to pay anything.',
-                        },
-                      ].map((item, idx) => (
-                        <div key={idx} className="py-2.5">
-                          <button
-                            onClick={() => setOpenFaqIndex(openFaqIndex === idx ? null : idx)}
-                            className="w-full flex items-center justify-between font-bold text-neutral-800 text-left"
-                          >
-                            <span>{item.q}</span>
-                            {openFaqIndex === idx ? (
-                              <ChevronUp className="w-4 h-4 text-emerald-600" />
-                            ) : (
-                              <ChevronDown className="w-4 h-4 text-neutral-400" />
-                            )}
-                          </button>
-                          {openFaqIndex === idx && <p className="text-neutral-500 mt-2 pl-1 leading-relaxed">{item.a}</p>}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
               )}
             </>
           )}
@@ -3439,6 +3381,12 @@ export default function ProfilePage() {
           </div>
         </div>
       )}
+
+      {/* MODAL 8: DELIVERY LOCATION SELECTOR MODAL */}
+      <DeliveryLocationModal
+        isOpen={locationModalOpen}
+        onClose={() => setLocationModalOpen(false)}
+      />
     </div>
   );
 }

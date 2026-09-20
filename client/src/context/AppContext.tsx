@@ -27,7 +27,7 @@ export type PageType =
   | 'offers'
   | 'wishlist';
 
-export type ProfileTabType = 'orders' | 'addresses' | 'wallet' | 'coupons' | 'settings' | 'support';
+export type ProfileTabType = 'orders' | 'addresses' | 'wallet' | 'coupons' | 'settings';
 
 interface AppState {
   currentPage: PageType;
@@ -84,7 +84,7 @@ function getInitialLocation(): DeliveryLocation {
 }
 
 function getInitialStateFromUrl(): Omit<AppState, 'cart' | 'wishlist' | 'deliveryLocation'> {
-  const validTabs: ProfileTabType[] = ['orders', 'addresses', 'wallet', 'coupons', 'settings', 'support'];
+  const validTabs: ProfileTabType[] = ['orders', 'addresses', 'wallet', 'coupons', 'settings'];
 
   if (typeof window === 'undefined') {
     return {
