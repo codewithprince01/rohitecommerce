@@ -24,17 +24,17 @@ export default function ZeptoCategoryGrid({ categories = zeptoCategories }: Zept
       onClick={() => handleCategoryClick(cat)}
       className="flex flex-col items-center group text-center focus:outline-none flex-shrink-0 w-[82px] sm:w-[94px] lg:w-[104px] xl:w-[108px]"
     >
-      {/* Strict Square Container - Slightly larger size for all categories */}
-      <div className="w-[82px] h-[82px] sm:w-[94px] sm:h-[94px] lg:w-[104px] lg:h-[104px] xl:w-[108px] xl:h-[108px] aspect-square bg-[#F4F6F8] rounded-2xl p-1.5 flex items-center justify-center border border-neutral-100 shadow-[0_2px_8px_rgba(0,0,0,0.03)] relative overflow-hidden group-hover:shadow-md group-hover:scale-105 group-active:scale-95 transition-all duration-200 flex-shrink-0">
+      {/* Image Container - Full bleed rounded image without border or padding */}
+      <div className="w-[82px] h-[82px] sm:w-[94px] sm:h-[94px] lg:w-[104px] lg:h-[104px] xl:w-[108px] xl:h-[108px] aspect-square rounded-2xl shadow-sm relative overflow-hidden group-hover:shadow-md group-hover:scale-105 group-active:scale-95 transition-all duration-200 flex-shrink-0">
         {cat.isNew && (
-          <span className="absolute top-1 left-1 bg-[#7C3AED] text-white text-[8px] font-black px-1.5 py-0.5 rounded uppercase tracking-wider shadow z-10">
+          <span className="absolute top-1.5 left-1.5 bg-[#7C3AED] text-white text-[8px] font-black px-1.5 py-0.5 rounded uppercase tracking-wider shadow z-10">
             NEW
           </span>
         )}
         <img
           src={cat.image}
           alt={cat.name}
-          className="w-full h-full object-cover rounded-xl aspect-square transition-transform group-hover:scale-105 duration-200"
+          className="w-full h-full object-cover rounded-2xl aspect-square transition-transform group-hover:scale-105 duration-200"
           loading="lazy"
           onError={(e) => {
             (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=compress&cs=tinysrgb&w=200&h=200&fit=crop';

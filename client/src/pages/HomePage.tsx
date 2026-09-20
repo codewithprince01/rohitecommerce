@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import { ChevronRight } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { getCategories, getFeaturedProducts } from '../lib/data';
 import type { Category, ProductWithVariants } from '../lib/supabase';
 import ZeptoHeroBanners from '../components/ZeptoHeroBanners';
 import ZeptoCategoryGrid from '../components/ZeptoCategoryGrid';
 import ZeptoShelfRow from '../components/ZeptoShelfRow';
+import ZeptoProductCard from '../components/ZeptoProductCard';
 import ProductCard from '../components/ProductCard';
 import SectionHeader from '../components/SectionHeader';
 import {
@@ -96,17 +98,25 @@ export default function HomePage() {
         }}
       />
 
-      {/* Additional Featured items from database */}
+      {/* Additional Featured items from database - Exact same Zepto card design */}
       {featuredProducts.length > 0 && (
-        <div className="mt-8 pt-4 border-t border-neutral-100">
-          <SectionHeader
-            title="More For You"
-            subtitle="Trending in your area"
-            onSeeAll={() => navigate('categories')}
-          />
-          <div className="flex gap-3 overflow-x-auto scrollbar-hide py-1">
+        <div className="mb-6 lg:mb-8">
+          <div className="flex items-center justify-between mb-3 px-1">
+            <h2 className="text-base sm:text-lg lg:text-xl font-bold text-neutral-900 tracking-tight">
+              More For You
+            </h2>
+            <button
+              type="button"
+              onClick={() => navigate('categories')}
+              className="text-xs sm:text-sm font-bold text-primary-600 hover:text-primary-700 flex items-center gap-0.5 transition-colors"
+            >
+              <span>See All</span>
+              <ChevronRight size={14} className="stroke-[2.5]" />
+            </button>
+          </div>
+          <div className="flex gap-2.5 sm:gap-3 overflow-x-auto scrollbar-hide py-1 px-1 scroll-smooth">
             {featuredProducts.slice(0, 10).map((p) => (
-              <ProductCard key={p.id} product={p} />
+              <ZeptoProductCard key={p.id} product={p} />
             ))}
           </div>
         </div>
