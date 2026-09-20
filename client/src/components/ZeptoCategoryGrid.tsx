@@ -22,10 +22,10 @@ export default function ZeptoCategoryGrid({ categories = zeptoCategories }: Zept
       key={cat.id}
       type="button"
       onClick={() => handleCategoryClick(cat)}
-      className="flex flex-col items-center group text-center focus:outline-none flex-shrink-0 w-[82px] sm:w-[94px] lg:w-[104px] xl:w-[108px]"
+      className="flex flex-col items-center group text-center focus:outline-none flex-shrink-0 w-[calc((100%-24px)/3)] min-w-[calc((100%-24px)/3)] max-w-[calc((100%-24px)/3)] sm:w-[112px] sm:min-w-[112px] sm:max-w-none lg:w-full lg:min-w-0 lg:max-w-[108px] snap-start"
     >
       {/* Image Container - Full bleed rounded image without border or padding */}
-      <div className="w-[82px] h-[82px] sm:w-[94px] sm:h-[94px] lg:w-[104px] lg:h-[104px] xl:w-[108px] xl:h-[108px] aspect-square rounded-2xl shadow-sm relative overflow-hidden group-hover:shadow-md group-hover:scale-105 group-active:scale-95 transition-all duration-200 flex-shrink-0">
+      <div className="w-full aspect-square rounded-2xl shadow-sm relative overflow-hidden group-hover:shadow-md group-hover:scale-105 group-active:scale-95 transition-all duration-200 flex-shrink-0">
         {cat.isNew && (
           <span className="absolute top-1.5 left-1.5 bg-[#7C3AED] text-white text-[8px] font-black px-1.5 py-0.5 rounded uppercase tracking-wider shadow z-10">
             NEW
@@ -43,7 +43,7 @@ export default function ZeptoCategoryGrid({ categories = zeptoCategories }: Zept
       </div>
 
       {/* Label - Uniform height and alignment */}
-      <span className="text-[10.5px] sm:text-xs font-semibold text-neutral-800 text-center leading-tight line-clamp-2 mt-1.5 w-full min-h-[28px] group-hover:text-primary-600 transition-colors">
+      <span className="text-[11px] sm:text-xs font-semibold text-neutral-800 text-center leading-tight line-clamp-2 mt-1.5 w-full min-h-[28px] group-hover:text-primary-600 transition-colors px-0.5">
         {cat.name}
       </span>
     </button>
@@ -71,12 +71,12 @@ export default function ZeptoCategoryGrid({ categories = zeptoCategories }: Zept
         {categories.map(cat => renderCategoryItem(cat))}
       </div>
 
-      {/* Mobile/Tablet: 2 smooth scroll rows */}
+      {/* Mobile/Tablet: 2 smooth scroll rows with exactly 3 items visible per row */}
       <div className="lg:hidden flex flex-col gap-3">
-        <div className="flex gap-2.5 overflow-x-auto scrollbar-hide py-1 px-1">
+        <div className="flex gap-3 overflow-x-auto scrollbar-hide py-1 px-0.5 snap-x snap-mandatory scroll-smooth">
           {row1.map(cat => renderCategoryItem(cat))}
         </div>
-        <div className="flex gap-2.5 overflow-x-auto scrollbar-hide py-1 px-1">
+        <div className="flex gap-3 overflow-x-auto scrollbar-hide py-1 px-0.5 snap-x snap-mandatory scroll-smooth">
           {row2.map(cat => renderCategoryItem(cat))}
         </div>
       </div>

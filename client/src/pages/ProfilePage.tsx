@@ -626,6 +626,10 @@ export default function ProfilePage() {
   };
 
   const handleBack = () => {
+    if (trackingOrder) {
+      setTrackingOrder(null);
+      return;
+    }
     if (!mobileMenuOpen) {
       setMobileMenuOpen(true);
       window.history.pushState({}, '', '/profile');
@@ -1240,31 +1244,39 @@ export default function ProfilePage() {
   const navItems = [
     {
       id: 'orders' as ProfileTabType,
-      label: 'Orders',
+      label: 'Your Orders',
+      subtitle: 'Track active orders & reorder past items',
       icon: Package,
       badge: activeOrdersCount > 0 ? `${activeOrdersCount} Active` : undefined,
       badgeColor: 'bg-emerald-100 text-emerald-800',
+      iconBg: 'bg-emerald-50 text-emerald-600',
     },
     {
       id: 'addresses' as ProfileTabType,
       label: 'Saved Addresses',
+      subtitle: 'Home, work & delivery instructions',
       icon: MapPin,
-      badge: undefined,
-      badgeColor: '',
+      badge: addresses.length > 0 ? `${addresses.length} Saved` : undefined,
+      badgeColor: 'bg-blue-50 text-blue-700',
+      iconBg: 'bg-blue-50 text-blue-600',
     },
     {
       id: 'settings' as ProfileTabType,
       label: 'Profile & Settings',
+      subtitle: 'Personal info, phone, email & security',
       icon: Settings,
       badge: undefined,
       badgeColor: '',
+      iconBg: 'bg-purple-50 text-purple-600',
     },
     {
       id: 'support' as ProfileTabType,
       label: 'Customer Support',
+      subtitle: '24x7 help desk, past tickets & FAQs',
       icon: HelpCircle,
       badge: undefined,
       badgeColor: '',
+      iconBg: 'bg-amber-50 text-amber-600',
     },
   ];
 
@@ -1288,17 +1300,43 @@ export default function ProfilePage() {
 
       {/* TOP BAR: Clean edge-to-edge navbar */}
       <header className="sticky top-0 z-40 w-full bg-white border-b border-neutral-200/90 shadow-2xs">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-14 sm:h-16 flex items-center justify-between">
-          <div className="flex items-center gap-4">
+        <div className="max-w-6xl mx-auto px-3 sm:px-6 h-14 sm:h-16 flex items-center justify-between">
+          {/* Mobile view header */}
+          <div className="flex sm:hidden items-center gap-2 flex-1 min-w-0 mr-2">
+            <button
+              type="button"
+              onClick={handleBack}
+              className="w-9 h-9 -ml-1 rounded-xl flex items-center justify-center text-neutral-700 hover:bg-neutral-100 active:scale-95 transition-all shrink-0"
+              aria-label="Back"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </button>
+            <div className="min-w-0">
+              <h1 className="text-base font-extrabold text-neutral-900 truncate">
+                {mobileMenuOpen
+                  ? 'My Account'
+                  : currentTab === 'orders'
+                  ? (trackingOrder ? 'Track Order' : 'My Orders')
+                  : currentTab === 'addresses'
+                  ? 'Saved Addresses'
+                  : currentTab === 'settings'
+                  ? 'Profile & Settings'
+                  : 'Customer Support'}
+              </h1>
+            </div>
+          </div>
+
+          {/* Desktop view header brand + back */}
+          <div className="hidden sm:flex items-center gap-4">
             <button
               onClick={handleBack}
               className="flex items-center gap-1.5 text-xs sm:text-sm font-bold text-neutral-700 hover:text-emerald-600 transition-colors py-1.5 px-2.5 rounded-lg hover:bg-emerald-50 group"
             >
               <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
-              <span>{!mobileMenuOpen ? 'Back' : 'Back to Store'}</span>
+              <span>{!mobileMenuOpen ? 'Back to Menu' : 'Back to Store'}</span>
             </button>
-            <div className="h-4 w-px bg-neutral-200 hidden sm:block" />
-            <div className="flex items-center gap-2">
+            <div className="h-4 w-px bg-neutral-200" />
+            <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate('home')}>
               <div className="w-7 h-7 rounded-lg bg-emerald-600 flex items-center justify-center text-white font-black text-sm shadow-xs">
                 F
               </div>
@@ -1308,14 +1346,14 @@ export default function ProfilePage() {
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
-            {/* Quick Cart Preview */}
+          {/* Right side: Quick Cart */}
+          <div className="flex items-center gap-2 shrink-0">
             <button
               onClick={() => navigate('cart')}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-700 hover:bg-emerald-100 font-bold text-xs transition-colors border border-emerald-200/60"
+              className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-700 hover:bg-emerald-100 font-bold text-xs transition-colors border border-emerald-200/60"
             >
               <ShoppingBag className="w-4 h-4" />
-              <span>Cart</span>
+              <span className="hidden sm:inline">Cart</span>
               {cartCount > 0 && (
                 <span className="w-5 h-5 rounded-full bg-emerald-600 text-white text-[10px] font-black flex items-center justify-center">
                   {cartCount}
@@ -1326,11 +1364,154 @@ export default function ProfilePage() {
         </div>
       </header>
 
-      {/* MAIN CONTAINER: Centered max-w-6xl with 2-Column Responsive Layout */}
+      {/* MAIN CONTAINER: Centered max-w-6xl with Responsive Layout */}
       <div className="max-w-6xl mx-auto w-full px-3 sm:px-6 py-4 sm:py-7 flex-1">
-        <div className="flex flex-col lg:flex-row gap-6 items-start">
-          {/* LEFT SIDEBAR / MOBILE ACCOUNT MENU */}
-          <aside className={`w-full lg:w-72 shrink-0 lg:sticky lg:top-20 ${mobileMenuOpen ? 'block' : 'hidden lg:block'}`}>
+        {/* MOBILE ACCOUNT MENU: Rendered exclusively on mobile when mobileMenuOpen is true */}
+        {mobileMenuOpen && (
+          <div className="lg:hidden space-y-3.5 w-full pb-8 animate-in fade-in duration-200">
+            {/* User Profile Card */}
+            <div className="bg-white rounded-2xl border border-neutral-200/90 shadow-2xs p-4">
+              <div className="flex items-center gap-3.5">
+                <div className="relative shrink-0">
+                  <img
+                    src={settingsForm.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=compress&cs=tinysrgb&w=150'}
+                    alt="Avatar"
+                    className="w-14 h-14 rounded-full object-cover border-2 border-emerald-500/30 shadow-xs"
+                  />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h2 className="text-base font-extrabold text-neutral-900 truncate">
+                    {settingsForm.name || profile?.name || 'Diya Patel'}
+                  </h2>
+                  <div className="flex items-center gap-1.5 text-xs text-neutral-500 mt-0.5">
+                    <Phone className="w-3.5 h-3.5 text-neutral-400 shrink-0" />
+                    <span className="truncate">{settingsForm.phone || profile?.phone || '985798989'}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 text-xs text-neutral-400 mt-0.5">
+                    <Mail className="w-3.5 h-3.5 text-neutral-400 shrink-0" />
+                    <span className="truncate">{settingsForm.email || profile?.email || 'diya.patel@example.com'}</span>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleTabChange('settings')}
+                  className="self-center p-2 rounded-xl text-emerald-600 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200/60 transition-colors"
+                  title="Edit Profile"
+                >
+                  <Edit2 size={16} />
+                </button>
+              </div>
+            </div>
+
+            {/* Quick Stat Highlights */}
+            <div className="grid grid-cols-3 gap-2.5">
+              <button
+                type="button"
+                onClick={() => handleTabChange('orders')}
+                className="bg-white p-3 rounded-2xl border border-neutral-200/90 shadow-2xs flex flex-col items-center text-center hover:border-emerald-300 active:scale-95 transition-all"
+              >
+                <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center mb-1">
+                  <Package className="w-4 h-4" />
+                </div>
+                <span className="text-xs font-bold text-neutral-900">Orders</span>
+                <span className="text-[10px] font-semibold text-emerald-600">
+                  {activeOrdersCount > 0 ? `${activeOrdersCount} Active` : `${orders.length} Total`}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleTabChange('addresses')}
+                className="bg-white p-3 rounded-2xl border border-neutral-200/90 shadow-2xs flex flex-col items-center text-center hover:border-blue-300 active:scale-95 transition-all"
+              >
+                <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center mb-1">
+                  <MapPin className="w-4 h-4" />
+                </div>
+                <span className="text-xs font-bold text-neutral-900">Addresses</span>
+                <span className="text-[10px] font-semibold text-neutral-500">
+                  {addresses.length} Saved
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleTabChange('support')}
+                className="bg-white p-3 rounded-2xl border border-neutral-200/90 shadow-2xs flex flex-col items-center text-center hover:border-amber-300 active:scale-95 transition-all"
+              >
+                <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center mb-1">
+                  <HelpCircle className="w-4 h-4" />
+                </div>
+                <span className="text-xs font-bold text-neutral-900">Support</span>
+                <span className="text-[10px] font-semibold text-amber-600">24x7 Help</span>
+              </button>
+            </div>
+
+            {/* Grouped Menu List */}
+            <div className="bg-white rounded-2xl border border-neutral-200/90 shadow-2xs divide-y divide-neutral-100 overflow-hidden">
+              {navItems.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => handleTabChange(item.id)}
+                    className="w-full flex items-center justify-between p-3.5 hover:bg-neutral-50 active:bg-neutral-100 transition-colors text-left group"
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${item.iconBg}`}>
+                        <Icon className="w-5 h-5" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-xs sm:text-sm font-bold text-neutral-900 group-hover:text-emerald-600 transition-colors truncate">
+                          {item.label}
+                        </p>
+                        <p className="text-[11px] text-neutral-400 truncate">
+                          {item.subtitle}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0 ml-2">
+                      {item.badge && (
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${item.badgeColor}`}>
+                          {item.badge}
+                        </span>
+                      )}
+                      <ChevronRight className="w-4 h-4 text-neutral-400 group-hover:translate-x-0.5 transition-transform" />
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Log Out Option */}
+            <div className="bg-white rounded-2xl border border-neutral-200/90 shadow-2xs overflow-hidden">
+              <button
+                onClick={() => setShowLogoutModal(true)}
+                className="w-full flex items-center justify-between p-3.5 hover:bg-rose-50/60 active:bg-rose-50 transition-colors text-left group"
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-9 h-9 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center shrink-0">
+                    <LogOut className="w-5 h-5" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-xs sm:text-sm font-bold text-rose-600">Log Out</p>
+                    <p className="text-[11px] text-neutral-400">Sign out of your account</p>
+                  </div>
+                </div>
+                <ChevronRight className="w-4 h-4 text-rose-300 group-hover:translate-x-0.5 transition-transform" />
+              </button>
+            </div>
+
+            {/* Version Footer */}
+            <div className="text-center pt-2">
+              <p className="text-xs font-bold text-neutral-400 tracking-wide">FreshMart v2.4.0</p>
+              <p className="text-[10.5px] text-neutral-400 mt-0.5">10-Minute Superfast Delivery</p>
+            </div>
+          </div>
+        )}
+
+        <div className={`flex flex-col lg:flex-row gap-6 items-start ${mobileMenuOpen ? 'hidden lg:flex' : 'flex'}`}>
+          {/* DESKTOP SIDEBAR: Left sticky navigation */}
+          <aside className="hidden lg:block w-72 shrink-0 sticky top-20">
             <div className="bg-white rounded-2xl border border-neutral-200/90 shadow-xs p-4 sm:p-5 space-y-4">
               {/* User Profile Card */}
               <div className="flex items-center gap-3 pb-3.5 border-b border-neutral-100">
@@ -1400,7 +1581,7 @@ export default function ProfilePage() {
           </aside>
 
           {/* RIGHT CONTENT AREA */}
-          <main className={`flex-1 min-w-0 w-full ${!mobileMenuOpen ? 'block' : 'hidden lg:block'}`}>
+          <main className="flex-1 min-w-0 w-full">
             {loading ? (
               <div className="flex flex-col items-center justify-center py-24 text-neutral-400 bg-white rounded-2xl border border-neutral-200 shadow-xs">
                 <RefreshCw className="w-8 h-8 animate-spin text-emerald-600 mb-3" />

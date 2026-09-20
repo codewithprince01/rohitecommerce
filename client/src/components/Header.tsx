@@ -196,8 +196,9 @@ export default function Header() {
               </div>
             </div>
           </div>
-        )}
-      </header>
+        </div>
+      )}
+    </header>
 
       {/* Location Modal */}
       <DeliveryLocationModal

@@ -1,8 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import {
-  Tag,
-  Copy,
-  Check,
   Zap,
   Percent,
 } from 'lucide-react';
@@ -10,59 +7,6 @@ import { useApp } from '../context/AppContext';
 import { getAllProducts, getFeaturedProducts } from '../lib/data';
 import type { ProductWithVariants } from '../lib/supabase';
 import ZeptoProductCard from '../components/ZeptoProductCard';
-
-interface Coupon {
-  code: string;
-  title: string;
-  discount: string;
-  minOrder: string;
-  validTill: string;
-  category: string;
-}
-
-const coupons: Coupon[] = [
-  {
-    code: 'WELCOME100',
-    title: 'First Order Special',
-    discount: 'Flat ₹100 OFF',
-    minOrder: 'Min ₹399',
-    validTill: 'Valid on 1st order',
-    category: 'All Items',
-  },
-  {
-    code: 'FRESH50',
-    title: 'Grocery Bonanza',
-    discount: 'Flat ₹50 OFF',
-    minOrder: 'Min ₹299',
-    validTill: 'Expires in 2 days',
-    category: 'Groceries',
-  },
-  {
-    code: 'VEGGIE20',
-    title: 'Farm Fresh Organic',
-    discount: '20% OFF',
-    minOrder: 'Min ₹199',
-    validTill: 'Valid this week',
-    category: 'Fruits & Veg',
-  },
-  {
-    code: 'FREEFLY',
-    title: 'Zero Delivery Fee',
-    discount: 'FREE Delivery',
-    minOrder: 'No min order',
-    validTill: 'Daily 10am - 8pm',
-    category: 'Express',
-  },
-  {
-    code: 'SUPER300',
-    title: 'Mega Kitchen Stockup',
-    discount: 'Flat ₹300 OFF',
-    minOrder: 'Min ₹1,499',
-    validTill: 'Month end',
-    category: 'Bulk Cart',
-  },
-];
-
 
 const filterCategories = [
   'All Offers',
@@ -74,7 +18,6 @@ const filterCategories = [
 
 export default function OffersPage() {
   const { navigate } = useApp();
-  const [copiedCode, setCopiedCode] = useState<string | null>(null);
   const [products, setProducts] = useState<ProductWithVariants[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedFilter, setSelectedFilter] = useState('All Offers');
@@ -102,14 +45,6 @@ export default function OffersPage() {
     }
     loadDeals();
   }, []);
-
-  const handleCopy = (code: string) => {
-    navigator.clipboard.writeText(code);
-    setCopiedCode(code);
-    setTimeout(() => {
-      setCopiedCode(null);
-    }, 2500);
-  };
 
   // Filter products by category or show all offer products
   const offerProducts = useMemo(() => {
@@ -215,79 +150,6 @@ export default function OffersPage() {
           >
             View Cart
           </button>
-        </div>
-      </div>
-
-      {/* ─────────────────────────────────────────────────────────────
-          2. COMPACT COUPONS ROW (Horizontal scroll / tight grid)
-      ───────────────────────────────────────────────────────────── */}
-      <div>
-        <div className="flex items-center justify-between mb-2.5 px-0.5">
-          <div className="flex items-center gap-1.5">
-            <Tag size={16} className="text-primary-600" />
-            <h2 className="text-xs sm:text-sm font-bold text-neutral-900">
-              Active Promo Codes
-            </h2>
-          </div>
-          <span className="text-[11px] text-neutral-500 font-medium">
-            Tap code to copy & apply at checkout
-          </span>
-        </div>
-
-        <div className="flex gap-2.5 overflow-x-auto pb-1.5 scrollbar-none snap-x">
-          {coupons.map((coupon) => {
-            const isCopied = copiedCode === coupon.code;
-            return (
-              <div
-                key={coupon.code}
-                className="flex-shrink-0 w-[200px] sm:w-[220px] bg-white rounded-xl p-2.5 border border-neutral-200/80 shadow-2xs hover:shadow-sm transition-all flex flex-col justify-between snap-start"
-              >
-                <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-[9.5px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-primary-50 text-primary-700">
-                      {coupon.category}
-                    </span>
-                    <span className="text-[9.5px] text-neutral-400 font-medium">
-                      {coupon.minOrder}
-                    </span>
-                  </div>
-                  <h3 className="text-sm font-black text-neutral-900 leading-tight">
-                    {coupon.discount}
-                  </h3>
-                  <p className="text-[10px] text-neutral-500 line-clamp-1 mt-0.5">
-                    {coupon.title}
-                  </p>
-                </div>
-
-                <div className="mt-2 pt-2 border-t border-dashed border-neutral-200 flex items-center justify-between gap-1.5">
-                  <span className="font-mono text-xs font-black text-neutral-800 tracking-wider">
-                    {coupon.code}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => handleCopy(coupon.code)}
-                    className={`px-2 py-1 rounded-lg text-[10px] font-extrabold flex items-center gap-1 transition-all ${
-                      isCopied
-                        ? 'bg-emerald-600 text-white'
-                        : 'bg-primary-500 hover:bg-primary-600 text-white active:scale-95'
-                    }`}
-                  >
-                    {isCopied ? (
-                      <>
-                        <Check size={11} className="stroke-[3]" />
-                        <span>COPIED</span>
-                      </>
-                    ) : (
-                      <>
-                        <Copy size={11} />
-                        <span>COPY</span>
-                      </>
-                    )}
-                  </button>
-                </div>
-              </div>
-            );
-          })}
         </div>
       </div>
 
