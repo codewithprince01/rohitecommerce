@@ -34,12 +34,16 @@ const router = Router();
 
 // Public storefront endpoints
 router.get('/', listProducts);
+
+// Must be declared before '/:id', otherwise Express matches "stats" as a
+// product id and the admin KPI cards get a 404 instead of their numbers.
+router.get('/stats', requireAuth, requirePermission('products.view'), productStats);
+
 router.get('/:id', getProduct);
 
 // Admin-only endpoints require authentication
 router.use(requireAuth);
 
-router.get('/stats', requirePermission('products.view'), productStats);
 router.post('/', requirePermission('products.create'), validate(productSchema), createProduct);
 router.patch('/:id', requirePermission('products.update'), validate(productSchema.partial()), updateProduct);
 router.delete('/:id', requirePermission('products.delete'), deleteProduct);

@@ -306,7 +306,7 @@ function CategoriesTab({ canManage, onMutate }: TabProps) {
           <FormField label="Slug" hint="Auto-generated from name if left blank">
             <Input value={form.slug} onChange={(e) => setForm({ ...form, slug: e.target.value })} placeholder="snacks-namkeen" />
           </FormField>
-          <FormField label="Image URL">
+          <FormField label="Image" hint="Upload a file or paste a link — leave empty if there is no picture">
             <ImageUrlInput value={form.image} onChange={(v) => setForm({ ...form, image: v })} />
           </FormField>
           <div className="grid grid-cols-2 gap-3">
@@ -432,7 +432,7 @@ function SubcategoriesTab({ canManage, onMutate }: TabProps) {
           <FormField label="Slug" hint="Auto-generated if blank">
             <Input value={form.slug} onChange={(e) => setForm({ ...form, slug: e.target.value })} />
           </FormField>
-          <FormField label="Image URL">
+          <FormField label="Image" hint="Upload a file or paste a link — leave empty if there is no picture">
             <ImageUrlInput value={form.image} onChange={(v) => setForm({ ...form, image: v })} />
           </FormField>
           <FormField label="Sort order">
@@ -558,7 +558,7 @@ function BrandsTab({ canManage, onMutate }: TabProps) {
           <FormField label="Slug" hint="Auto-generated if blank">
             <Input value={form.slug} onChange={(e) => setForm({ ...form, slug: e.target.value })} />
           </FormField>
-          <FormField label="Logo URL">
+          <FormField label="Logo" hint="Upload a file or paste a link — leave empty if there is no logo">
             <ImageUrlInput value={form.logo} onChange={(v) => setForm({ ...form, logo: v })} />
           </FormField>
           <FormField label="Description">

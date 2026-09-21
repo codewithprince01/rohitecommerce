@@ -85,10 +85,20 @@ export const importFile = asyncHandler(async (req, res) => {
   const parsed = await parseUpload(req.file.buffer, req.file.originalname);
   const mapped = mapRows(type, parsed);
 
-  const { counts, errors: importErrors, imported } = await importRows(type, mapped.rows, { dryRun, updateExisting });
+  const {
+    counts,
+    errors: importErrors,
+    imported,
+    failedRows: importFailed,
+    errorsTruncated: importTruncated,
+  } = await importRows(type, mapped.rows, { dryRun, updateExisting });
 
   const errors = [...mapped.errors, ...importErrors].sort((a, b) => a.row - b.row);
-  const failedRows = new Set(errors.map((e) => e.row)).size;
+  // Counted while running, not derived from `errors`: message collection stops
+  // at a cap, so a 2,500-row file would otherwise report far fewer failures
+  // than it really had and leave rows unaccounted for.
+  const failedRows = mapped.failedRows + importFailed;
+  const errorsTruncated = mapped.errorsTruncated || importTruncated;
 
   if (!dryRun && imported > 0) {
     await logActivity(req, 'bulk_import', type === 'products' ? 'product' : 'category', null, {
@@ -105,9 +115,10 @@ export const importFile = asyncHandler(async (req, res) => {
     type,
     file: req.file.originalname,
     updateExisting,
-    rows: { total: mapped.totalRows, imported, failed: failedRows },
+    rows: { total: mapped.totalRows, imported, failed: failedRows, carried: mapped.carriedRows },
     counts,
     errors,
+    errorsTruncated,
     warnings: mapped.warnings,
     unknownHeaders: mapped.unknownHeaders,
     recognisedColumns: mapped.recognisedColumns,

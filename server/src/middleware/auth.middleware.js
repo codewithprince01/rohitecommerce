@@ -31,6 +31,16 @@ export const requirePermission = (...permissions) =>
     next();
   };
 
+// Require at least one of several permissions — for endpoints shared by
+// screens with different grants (image upload serves products, categories and
+// banners alike).
+export const requireAnyPermission = (...permissions) =>
+  (req, _res, next) => {
+    if (!req.admin) return next(ApiError.unauthorized());
+    if (permissions.some((p) => can(req.admin.role, p))) return next();
+    return next(ApiError.forbidden(`Requires one of: ${permissions.join(', ')}`));
+  };
+
 // Restrict to specific roles (e.g. super_admin only for admin management).
 export const requireRole = (...roles) =>
   (req, _res, next) => {

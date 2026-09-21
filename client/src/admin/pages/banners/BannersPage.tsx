@@ -365,7 +365,7 @@ export default function BannersPage() {
           <FormField label="Subtitle">
             <Textarea value={form.subtitle} onChange={(e) => setForm({ ...form, subtitle: e.target.value })} />
           </FormField>
-          <FormField label="Image URL">
+          <FormField label="Image" hint="Upload a file or paste a link — leave empty if there is no picture">
             <ImageUrlInput value={form.image} onChange={(v) => setForm({ ...form, image: v })} />
           </FormField>
 

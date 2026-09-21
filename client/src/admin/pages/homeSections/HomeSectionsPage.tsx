@@ -20,6 +20,7 @@ import { listProducts, type ProductListRow } from '../../lib/services/products.s
 import { useToast } from '../../hooks/useToast';
 import { useConfirm } from '../../hooks/useConfirm';
 import { formatCurrency } from '../../lib/format';
+import SafeImage from '../../../components/SafeImage';
 
 export default function HomeSectionsPage() {
   const toast = useToast();
@@ -530,9 +531,10 @@ export default function HomeSectionsPage() {
                             }`}
                           >
                             <div className="flex items-center gap-2.5 min-w-0">
-                              <img
-                                src={p.image || '/placeholder.png'}
+                              <SafeImage
+                                src={p.image}
                                 alt={p.name}
+                                iconSize={14}
                                 className="w-9 h-9 rounded-lg object-contain bg-white border border-neutral-100 shrink-0"
                               />
                               <div className="min-w-0">

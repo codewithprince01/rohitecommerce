@@ -17,6 +17,7 @@ import { listProducts, type ProductListRow } from '../../lib/services/products.s
 import { useToast } from '../../hooks/useToast';
 import { useConfirm } from '../../hooks/useConfirm';
 import { formatCurrency } from '../../lib/format';
+import SafeImage from '../../../components/SafeImage';
 
 const GRADIENT_PRESETS = [
   { label: 'Teal & Emerald', value: 'from-[#0F766E] via-[#059669] to-[#047857]' },
@@ -435,9 +436,10 @@ export default function OffersManagePage() {
                         }`}
                       >
                         <div className="flex items-center gap-2 min-w-0">
-                          <img
-                            src={p.image || '/placeholder.png'}
+                          <SafeImage
+                            src={p.image}
                             alt={p.name}
+                            iconSize={13}
                             className="w-8 h-8 rounded-lg object-contain bg-white border border-neutral-100 shrink-0"
                           />
                           <div className="min-w-0">

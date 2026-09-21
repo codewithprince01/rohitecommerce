@@ -74,6 +74,76 @@ function coerceValue(column, raw) {
   }
 }
 
+/* --------------------------- Grouped-sheet rows --------------------------- */
+
+/**
+ * The catalog hierarchy top to bottom, as (name, slug) column pairs.
+ *
+ * Real supplier sheets are written in groups: the category is typed once and
+ * the rows underneath leave it blank — which is also exactly what Excel's
+ * merged cells collapse to. Treating those blanks as "same as the row above"
+ * is the difference between importing such a file and rejecting nearly every
+ * line of it.
+ */
+const GROUP_LEVELS = {
+  catalog: [
+    ['category_name', 'category_slug'],
+    ['subcategory_name', 'subcategory_slug'],
+    ['brand_name', 'brand_slug'],
+  ],
+  products: [
+    ['category_name', 'category_slug'],
+    ['subcategory_name', 'subcategory_slug'],
+    ['brand_name', 'brand_slug'],
+    // A blank product name with a pack size is the second pack of the product
+    // above — the other half of the same convention.
+    ['product_name', 'product_slug'],
+  ],
+};
+
+/**
+ * Fill blank hierarchy cells on `values` from the rows above, tracked in
+ * `carried`.
+ *
+ * Only the identifying name/slug columns are inherited. Images, colours and
+ * sort orders deliberately are not: a blank image column must stay blank, or a
+ * picture from one row would spread across a whole group.
+ *
+ * Restating a level with a *different* value starts a new group, so the levels
+ * below are dropped instead of inherited — otherwise the first product of a
+ * new category would silently land under the previous category's subcategory.
+ */
+function carryForward(levels, values, carried) {
+  let newGroup = false;
+
+  levels.forEach(([nameKey, slugKey], depth) => {
+    const given = values[nameKey];
+
+    if (given !== undefined && given !== '') {
+      const changed = newGroup || carried[depth]?.name !== given;
+      if (changed) {
+        newGroup = true;
+        for (let below = depth + 1; below < levels.length; below += 1) carried[below] = undefined;
+      }
+      if (changed || values[slugKey] !== undefined) {
+        carried[depth] = { name: given, slug: values[slugKey] };
+      }
+      return;
+    }
+
+    // Blank cell. An ancestor that just changed means this level belongs to the
+    // new group and has to be spelled out; inheriting would misfile the row.
+    if (newGroup) {
+      carried[depth] = undefined;
+      return;
+    }
+    const inherited = carried[depth];
+    if (!inherited) return;
+    values[nameKey] = inherited.name;
+    if (inherited.slug !== undefined && values[slugKey] === undefined) values[slugKey] = inherited.slug;
+  });
+}
+
 /* ------------------------------ Row mapping ------------------------------ */
 
 /**
@@ -129,6 +199,14 @@ export function mapRows(type, parsed) {
   const rows = [];
   const errors = [];
   const warnings = [];
+  // Counted separately from `errors`, which stops collecting at MAX_ERRORS —
+  // the summary has to say how many rows really failed, not how many messages
+  // we kept.
+  let failedRows = 0;
+  let carriedRows = 0;
+
+  const levels = GROUP_LEVELS[type] ?? [];
+  const carried = [];
 
   for (const record of parsed.records) {
     const values = {};
@@ -152,6 +230,15 @@ export function mapRows(type, parsed) {
       if (warning) rowWarnings.push({ row: record.rowNumber, column: column.header, message: warning });
       if (value !== undefined) values[key] = value;
     });
+
+    // Blank hierarchy cells mean "same as above" — resolve them before the
+    // required-column check, which is what a grouped sheet expects.
+    if (levels.length) {
+      const before = levels.filter(([nameKey]) => values[nameKey] === undefined).length;
+      carryForward(levels, values, carried);
+      const after = levels.filter(([nameKey]) => values[nameKey] === undefined).length;
+      if (after < before) carriedRows += 1;
+    }
 
     // Required cells.
     for (const column of columns) {
@@ -205,6 +292,7 @@ export function mapRows(type, parsed) {
     }
 
     if (rowErrors.length) {
+      failedRows += 1;
       for (const error of rowErrors) if (errors.length < MAX_ERRORS) errors.push(error);
       continue;
     }
@@ -216,6 +304,9 @@ export function mapRows(type, parsed) {
     rows,
     errors,
     warnings,
+    failedRows,
+    carriedRows,
+    errorsTruncated: errors.length >= MAX_ERRORS,
     unknownHeaders,
     recognisedColumns: [...seen],
     totalRows: parsed.records.length,
@@ -284,6 +375,7 @@ export async function importRows(type, rows, { dryRun = false, updateExisting = 
   };
   const errors = [];
   let imported = 0;
+  let failedRows = 0;
 
   // Per-run caches: keep the hierarchy lookups to one query per distinct node
   // and stop repeated rows from being counted (or created) twice.
@@ -460,6 +552,7 @@ export async function importRows(type, rows, { dryRun = false, updateExisting = 
 
       imported += 1;
     } catch (err) {
+      failedRows += 1;
       if (errors.length < MAX_ERRORS) {
         errors.push({
           row: rowNumber,
@@ -470,5 +563,5 @@ export async function importRows(type, rows, { dryRun = false, updateExisting = 
     }
   }
 
-  return { counts, errors, imported };
+  return { counts, errors, imported, failedRows, errorsTruncated: errors.length >= MAX_ERRORS };
 }

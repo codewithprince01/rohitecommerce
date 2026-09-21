@@ -198,7 +198,7 @@ export default function ProductForm({ open, product, onClose, onSaved }: Product
           <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Classic Salted Chips" />
         </FormField>
 
-        <FormField label="Image URL">
+        <FormField label="Image" hint="Upload a file or paste a link — leave empty if there is no picture">
           <ImageUrlInput value={image} onChange={setImage} />
         </FormField>
 

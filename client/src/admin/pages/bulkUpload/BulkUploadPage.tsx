@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useRef, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Upload, FileSpreadsheet, FileText, Download, CheckCircle2, AlertTriangle, XCircle,
   Layers, FolderTree, Tag, Package, Boxes, X, ShieldCheck, ListChecks, ChevronDown, Info,
@@ -123,11 +123,11 @@ export default function BulkUploadPage() {
       setResult(res);
       if (dryRun) {
         toast.info(
-          res.errors.length
-            ? `${res.errors.length} problem${res.errors.length === 1 ? '' : 's'} found — nothing was saved`
+          res.rows.failed
+            ? `${res.rows.failed} row${res.rows.failed === 1 ? '' : 's'} would be skipped — nothing was saved`
             : 'File looks good — no problems found'
         );
-      } else if (res.errors.length) {
+      } else if (res.rows.failed) {
         toast.info(`Imported ${res.rows.imported} of ${res.rows.total} rows — ${res.rows.failed} row(s) skipped`);
       } else {
         toast.success(`Imported all ${res.rows.imported} rows successfully`);
@@ -217,8 +217,9 @@ export default function BulkUploadPage() {
           <ul className="mt-4 space-y-1.5 text-xs text-neutral-500">
             <li>• Columns marked <span className="font-semibold text-rose-600">*</span> are required; the rest are optional.</li>
             <li>• Column order can be changed and extra columns are ignored.</li>
-            <li>• Images are links — paste an <code className="text-neutral-600">https://…</code> URL or an <code className="text-neutral-600">/uploads/…</code> path.</li>
-            {type === 'products' && <li>• Repeat a product on several rows to add multiple pack sizes.</li>}
+            <li>• Images are optional links — paste an <code className="text-neutral-600">https://…</code> URL or an <code className="text-neutral-600">/uploads/…</code> path. A blank cell means no picture.</li>
+            <li>• Leave the category, subcategory or sub-sub category blank to repeat the row above — fill them in again only when the group changes.</li>
+            {type === 'products' && <li>• Add another pack size by leaving the product name blank and filling only the pack row.</li>}
             {schema && <li>• Up to {schema.maxRows.toLocaleString()} rows per file.</li>}
           </ul>
         </section>
@@ -351,6 +352,7 @@ const COUNT_META = [
 ] as const;
 
 function ResultPanel({ result }: { result: BulkResult }) {
+  const navigate = useNavigate();
   const clean = result.errors.length === 0;
   const tone = clean
     ? { bg: 'bg-primary-50', border: 'border-primary-200', text: 'text-primary-800', Icon: CheckCircle2 }
@@ -384,8 +386,32 @@ function ResultPanel({ result }: { result: BulkResult }) {
           {result.dryRun ? 'are ready to import' : 'imported'}
           {result.rows.failed > 0 && ` — ${result.rows.failed} row${result.rows.failed === 1 ? '' : 's'} skipped`}.
           {clean && ' No problems found.'}
+          {result.rows.carried > 0 && (
+            <>
+              {' '}
+              <span className="opacity-80">
+                {result.rows.carried} row{result.rows.carried === 1 ? '' : 's'} took the category, subcategory or
+                sub-sub category from the row above.
+              </span>
+            </>
+          )}
         </p>
       </div>
+
+      {/* Where the data landed — an import that saved nothing visible is the
+          most confusing outcome there is, so always point at the list. */}
+      {!result.dryRun && result.rows.imported > 0 && (
+        <div className="flex flex-wrap gap-2 mb-4">
+          {result.type === 'products' && (
+            <Button size="sm" variant="outline" icon={<Package size={14} />} onClick={() => navigate('/products')}>
+              View products
+            </Button>
+          )}
+          <Button size="sm" variant="outline" icon={<FolderTree size={14} />} onClick={() => navigate('/categories')}>
+            View categories
+          </Button>
+        </div>
+      )}
 
       {/* What was (or would be) written */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-4">
@@ -413,6 +439,16 @@ function ResultPanel({ result }: { result: BulkResult }) {
           <span>
             Ignored unrecognised column{result.unknownHeaders.length === 1 ? '' : 's'}:{' '}
             {result.unknownHeaders.map((header) => `"${header}"`).join(', ')}
+          </span>
+        </p>
+      )}
+
+      {result.errorsTruncated && (
+        <p className="flex items-start gap-2 text-xs text-amber-700 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2 mb-3">
+          <Info size={14} className="flex-shrink-0 mt-px" />
+          <span>
+            {result.rows.failed} rows failed, but only the first {result.errors.length} problems are listed. Fix these,
+            re-upload, and the next report will cover the rest.
           </span>
         </p>
       )}

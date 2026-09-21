@@ -37,5 +37,12 @@ export const env = {
   upload: {
     dir: process.env.UPLOAD_DIR || 'uploads',
     maxMb: Number(process.env.MAX_UPLOAD_MB || 5),
+    /**
+     * Origin written into the URLs handed back for uploaded files. Left empty
+     * we fall back to the request's own host, which is right in development
+     * (client on :5173, API on :4000) but must be set behind a proxy/CDN so the
+     * URL stored on the product keeps working.
+     */
+    publicUrl: (process.env.PUBLIC_URL || '').replace(/\/$/, ''),
   },
 };

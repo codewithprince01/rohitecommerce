@@ -1,3 +1,4 @@
+import path from 'node:path';
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -36,8 +37,17 @@ export function createApp() {
     })
   );
 
-  // Static uploads
-  app.use('/uploads', express.static(env.upload.dir));
+  // Static uploads. Helmet defaults to a same-origin resource policy, which
+  // would stop the admin console (:5173) from rendering an image served by the
+  // API (:4000) — these files are public assets, so opt them out.
+  app.use(
+    '/uploads',
+    (_req, res, next) => {
+      res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+      next();
+    },
+    express.static(path.resolve(process.cwd(), env.upload.dir), { fallthrough: true, maxAge: '7d' })
+  );
 
   // Rate-limited API surface
   app.use('/api', apiLimiter, routes);

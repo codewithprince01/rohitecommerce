@@ -44,7 +44,13 @@ export interface BulkResult {
   type: BulkUploadType;
   file: string;
   updateExisting: boolean;
-  rows: { total: number; imported: number; failed: number };
+  rows: {
+    total: number;
+    imported: number;
+    failed: number;
+    /** Rows whose blank category/subcategory/brand were taken from the row above. */
+    carried: number;
+  };
   counts: {
     categories: BulkCount;
     subcategories: BulkCount;
@@ -53,6 +59,8 @@ export interface BulkResult {
     variants: BulkCount;
   };
   errors: BulkIssue[];
+  /** True when more rows failed than the server kept messages for. */
+  errorsTruncated: boolean;
   warnings: BulkIssue[];
   unknownHeaders: string[];
   recognisedColumns: string[];
