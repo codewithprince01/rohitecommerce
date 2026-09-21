@@ -1,14 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { MapPin, ShoppingCart, Bell, ChevronDown, Search, Mic, X, User, Heart } from 'lucide-react';
+import { MapPin, ShoppingCart, Bell, Search, Mic, X, User, Heart } from 'lucide-react';
 import { useApp, PageType } from '../context/AppContext';
-import DeliveryLocationModal from './DeliveryLocationModal';
 import NotificationsModal from './NotificationsModal';
+import DeliverToChip from './DeliverToChip';
 
 export default function Header() {
   const { cartCount, wishlistCount, deliveryLocation, navigate, setSearch, state } = useApp();
   const [scrolled, setScrolled] = useState(false);
   const [localSearch, setLocalSearch] = useState('');
-  const [locationModalOpen, setLocationModalOpen] = useState(false);
   const [notificationsModalOpen, setNotificationsModalOpen] = useState(false);
 
   useEffect(() => {
@@ -65,19 +64,7 @@ export default function Header() {
 
               {/* RightActions */}
               <div className="flex items-center gap-3">
-                <button
-                  onClick={() => setLocationModalOpen(true)}
-                  className="flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-neutral-50 transition-colors border border-transparent hover:border-neutral-200"
-                >
-                  <MapPin size={18} className="text-primary-600 flex-shrink-0" />
-                  <div className="text-left">
-                    <p className="text-[11px] text-neutral-500 font-medium">Deliver to</p>
-                    <p className="text-xs font-bold text-neutral-800 flex items-center gap-1">
-                      <span className="truncate max-w-[110px]">{deliveryLocation.area || deliveryLocation.city || 'Select location'}</span>
-                      <ChevronDown size={12} className="text-neutral-400" />
-                    </p>
-                  </div>
-                </button>
+                <DeliverToChip />
 
                 {/* Notifications Bell */}
                 <button
@@ -147,23 +134,7 @@ export default function Header() {
                 />
               </button>
 
-              <button
-                onClick={() => setLocationModalOpen(true)}
-                className="flex items-center gap-1.5 min-w-0 flex-1 justify-end px-1"
-              >
-                <div className="w-7 h-7 rounded-full bg-primary-100 flex items-center justify-center flex-shrink-0">
-                  <MapPin size={14} className="text-primary-600" />
-                </div>
-                <div className="min-w-0 text-left">
-                  <div className="flex items-center gap-0.5">
-                    <span className="text-[10px] text-neutral-500 font-medium leading-none">Deliver to</span>
-                    <ChevronDown size={11} className="text-neutral-400" />
-                  </div>
-                  <span className="text-xs font-bold text-neutral-800 block truncate max-w-[105px] sm:max-w-[140px]">
-                    {deliveryLocation.area || deliveryLocation.city || 'Select location'}
-                  </span>
-                </div>
-              </button>
+              <DeliverToChip size="sm" className="min-w-0 flex-1 flex justify-end" />
 
               <div className="flex items-center flex-shrink-0">
                 <button
@@ -207,12 +178,6 @@ export default function Header() {
         </div>
       )}
     </header>
-
-      {/* Location Modal */}
-      <DeliveryLocationModal
-        isOpen={locationModalOpen}
-        onClose={() => setLocationModalOpen(false)}
-      />
 
       {/* Notifications Modal */}
       <NotificationsModal

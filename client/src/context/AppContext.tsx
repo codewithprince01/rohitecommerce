@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useReducer, ReactNode, useEffect } from 'react';
 import type { ProductWithVariants, ProductVariant } from '../lib/supabase';
-import { pruneMissingProductIds } from '../lib/data';
+import { pruneMissingProductIds, getProductById } from '../lib/data';
 import { fetchAddresses, type AddressItem } from '../lib/profileApi';
 
 export interface CartItem {
@@ -14,6 +14,8 @@ export interface DeliveryLocation {
   area: string;
   pincode: string;
   addressLabel?: string;
+  /** The whole address on one line, kept so the header can show it in full. */
+  full?: string;
 }
 
 export type PageType =
@@ -73,13 +75,43 @@ function getInitialWishlist(): string[] {
   }
 }
 
-/** Short line for the header: the most specific part of a saved address. */
+const CART_KEY = 'freshmart_cart';
+
+/**
+ * The cart as this browser last left it.
+ *
+ * Restored immediately so a refresh never looks like the cart was emptied.
+ * The prices in here are a snapshot, so `AppProvider` re-checks every line
+ * against the live catalog on mount — see the effect that does it.
+ */
+function getInitialCart(): CartItem[] {
+  try {
+    const saved = localStorage.getItem(CART_KEY);
+    if (!saved) return [];
+    const parsed = JSON.parse(saved);
+    if (!Array.isArray(parsed)) return [];
+    // Ignore anything that is not a usable line rather than crashing on it.
+    return parsed.filter(
+      (i) => i && i.product?.id && i.variant?.id && typeof i.quantity === 'number' && i.quantity > 0
+    );
+  } catch (e) {
+    return [];
+  }
+}
+
+/**
+ * Header view of a saved address: a short line for the chip, plus the whole
+ * thing for when the shopper opens it to check where we are actually sending
+ * the order.
+ */
 export function locationFromAddress(a: AddressItem): DeliveryLocation {
+  const parts = [a.line1, a.line2, a.landmark, a.city, a.state].filter(Boolean).join(', ');
   return {
     city: a.city || '',
     area: a.line1 || a.landmark || a.city || '',
     pincode: a.pincode || '',
     addressLabel: a.label || 'Home',
+    full: a.pincode ? `${parts} - ${a.pincode}` : parts,
   };
 }
 
@@ -171,7 +203,7 @@ function getInitialStateFromUrl(): Omit<AppState, 'cart' | 'wishlist' | 'deliver
 
 const initialState: AppState = {
   ...getInitialStateFromUrl(),
-  cart: [],
+  cart: getInitialCart(),
   wishlist: getInitialWishlist(),
   deliveryLocation: getInitialLocation(),
 };
@@ -401,6 +433,57 @@ export function AppProvider({ children }: { children: ReactNode }) {
       .catch(() => {
         // API unreachable — leave the saved list untouched.
       });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  // Persist the cart on every change, so a refresh (or a tab that was closed
+  // by accident) does not throw away what the shopper picked.
+  useEffect(() => {
+    try {
+      if (state.cart.length === 0) localStorage.removeItem(CART_KEY);
+      else localStorage.setItem(CART_KEY, JSON.stringify(state.cart));
+    } catch {
+      // Private mode / quota — the cart still works for this session.
+    }
+  }, [state.cart]);
+
+  /**
+   * Re-check the restored cart against the live catalog, once, on mount.
+   *
+   * A stored line carries the price it had when it was added. Showing that
+   * days later would quote a price the shop no longer charges, so each line is
+   * refreshed from the API and dropped if its product or pack has since gone.
+   * If the API cannot be reached, the stored cart is left exactly as it is.
+   */
+  useEffect(() => {
+    const saved = getInitialCart();
+    if (saved.length === 0) return;
+    let active = true;
+
+    (async () => {
+      const checked = await Promise.all(
+        saved.map(async (item) => {
+          const fresh = await getProductById(item.product.id);
+          if (!fresh) return null; // product deleted
+          const variant = fresh.variants?.find((v) => v.id === item.variant.id);
+          if (!variant) return null; // that pack size is gone
+          return { product: fresh, variant, quantity: item.quantity };
+        })
+      );
+
+      if (!active) return;
+      const kept = checked.filter((i): i is CartItem => i !== null);
+      // Only dispatch when something actually moved, to avoid a pointless render.
+      const changed =
+        kept.length !== saved.length ||
+        kept.some((i, idx) => i.variant.price !== saved[idx]?.variant.price);
+      if (changed) dispatch({ type: 'SET_CART', items: kept });
+    })().catch(() => {
+      // API unreachable — keep the stored cart untouched.
+    });
+
     return () => {
       active = false;
     };

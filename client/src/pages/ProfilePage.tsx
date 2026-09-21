@@ -40,11 +40,6 @@ import {
   Navigation,
   MessageSquare,
   Home,
-  Briefcase,
-  Users,
-  Share2,
-  LocateFixed,
-  Building,
   Bike,
   SlidersHorizontal,
   Calendar,
@@ -69,8 +64,9 @@ import {
   ShieldAlert,
   Zap,
 } from 'lucide-react';
-import { useApp } from '../context/AppContext';
+import { useApp, locationFromAddress } from '../context/AppContext';
 import SafeImage from '../components/SafeImage';
+import DeliverToChip from '../components/DeliverToChip';
 import type { ProfileTabType } from '../context/AppContext';
 import type { ProductWithVariants, ProductVariant } from '../lib/supabase';
 import {
@@ -102,7 +98,6 @@ import {
   type SupportTicketItem,
 } from '../lib/profileApi';
 import ProfileSettingsView, { DEFAULT_AVATAR, compressAvatar } from '../components/profile/ProfileSettingsView';
-import DeliveryLocationModal from '../components/DeliveryLocationModal';
 
 export const formatOrderDateTime = (dateVal?: string | Date | null) => {
   if (!dateVal) {
@@ -144,13 +139,6 @@ export const getOrderPlacedAt = (order: OrderData) => {
   return order.placed_at || (order as any).created_at || (order as any).createdAt || new Date();
 };
 
-const DELIVERY_INSTRUCTION_OPTIONS = [
-  'Leave at door 🚪',
-  'Ring doorbell 🔔',
-  'Avoid calling 🤫',
-  'Leave with guard 👮',
-  'Beware of pets 🐕',
-];
 
 
 export default function ProfilePage() {
@@ -176,39 +164,18 @@ export default function ProfilePage() {
   const [tickets, setTickets] = useState<SupportTicketItem[]>([]);
 
   // Delivery Location Modal
-  const [locationModalOpen, setLocationModalOpen] = useState(false);
 
   // Active default address of whichever account is logged in
   const defaultAccountAddress = useMemo(() => {
     return addresses.find((a) => a.is_default) || addresses[0] || null;
   }, [addresses]);
 
-  const activeDisplayAddress = useMemo(() => {
-    if (defaultAccountAddress) {
-      return (
-        defaultAccountAddress.landmark ||
-        defaultAccountAddress.line2 ||
-        defaultAccountAddress.line1.split(',')[0] ||
-        defaultAccountAddress.city ||
-        'Ram Mandir Chauraha'
-      );
-    }
-    return deliveryLocation?.area || deliveryLocation?.city || 'Ram Mandir Chauraha';
-  }, [defaultAccountAddress, deliveryLocation]);
-
-  // Keep deliveryLocation synchronized with default address of current customer account
+  // Keep the header in step with this account's default address. Built by the
+  // shared mapper so the chip here and the one in the site header show exactly
+  // the same thing — including the full line the popover reveals.
   useEffect(() => {
     if (defaultAccountAddress && setDeliveryLocation) {
-      setDeliveryLocation({
-        city: defaultAccountAddress.city || 'Sabalgarh',
-        area:
-          defaultAccountAddress.landmark ||
-          defaultAccountAddress.line2 ||
-          defaultAccountAddress.line1.split(',')[0] ||
-          'Ram Mandir Chauraha',
-        pincode: defaultAccountAddress.pincode || '476229',
-        addressLabel: defaultAccountAddress.label || 'Home',
-      });
+      setDeliveryLocation(locationFromAddress(defaultAccountAddress));
     }
   }, [defaultAccountAddress]);
 
@@ -253,7 +220,6 @@ export default function ProfilePage() {
   const [addressModalOpen, setAddressModalOpen] = useState(false);
   const [editingAddress, setEditingAddress] = useState<AddressItem | null>(null);
   const [deletingAddress, setDeletingAddress] = useState<AddressItem | null>(null);
-  const [detectingLocation, setDetectingLocation] = useState(false);
 
   // Address Form State
   const [addressForm, setAddressForm] = useState({
@@ -919,14 +885,14 @@ export default function ProfilePage() {
     setAddressForm({
       label: 'Home',
       receiver_name: profile?.name || '',
-      receiver_phone: profile?.phone || '9906672945',
+      receiver_phone: profile?.phone || '',
       line1: '',
       line2: '',
       landmark: '',
       city: 'Sabalgarh',
       state: 'Madhya Pradesh',
       pincode: '476229',
-      delivery_instructions: ['Leave at door 🚪'],
+      delivery_instructions: [] as string[],
       is_default: addresses.length === 0,
     });
     setAddressModalOpen(true);
@@ -937,7 +903,7 @@ export default function ProfilePage() {
     setAddressForm({
       label: addr.label,
       receiver_name: addr.receiver_name || profile?.name || '—',
-      receiver_phone: addr.receiver_phone || profile?.phone || '9906672945',
+      receiver_phone: addr.receiver_phone || profile?.phone || '',
       line1: addr.line1,
       line2: addr.line2 || '',
       landmark: addr.landmark || '',
@@ -948,37 +914,6 @@ export default function ProfilePage() {
       is_default: addr.is_default,
     });
     setAddressModalOpen(true);
-  };
-
-  const handleDetectGPS = () => {
-    setDetectingLocation(true);
-    setTimeout(() => {
-      setDetectingLocation(false);
-      setAddressForm((prev) => ({
-        ...prev,
-        city: 'Sabalgarh',
-        state: 'Madhya Pradesh',
-        pincode: '476229',
-        landmark: 'Near Ram Mandir Chauraha',
-        line1: prev.line1 || 'Fatehchand colony, ward no 5',
-        line2: 'Ward No 5',
-      }));
-      showToast('📍 GPS location detected: Ram Mandir Chauraha, Sabalgarh');
-    }, 700);
-  };
-
-  const toggleInstruction = (tag: string) => {
-    if (addressForm.delivery_instructions.includes(tag)) {
-      setAddressForm({
-        ...addressForm,
-        delivery_instructions: addressForm.delivery_instructions.filter((t) => t !== tag),
-      });
-    } else {
-      setAddressForm({
-        ...addressForm,
-        delivery_instructions: [...addressForm.delivery_instructions, tag],
-      });
-    }
   };
 
   const handleSaveAddress = async (e: React.FormEvent) => {
@@ -1041,12 +976,6 @@ export default function ProfilePage() {
     } finally {
       setActionLoading(false);
     }
-  };
-
-  const handleShareAddress = (addr: AddressItem) => {
-    const formatted = `${addr.label}: ${addr.line1}, ${addr.line2 ? addr.line2 + ', ' : ''}${addr.city} - ${addr.pincode} (Ph: ${addr.receiver_phone || profile?.phone})`;
-    navigator.clipboard.writeText(formatted);
-    showToast('Address details copied to clipboard!');
   };
 
   // 3. WALLET ACTIONS
@@ -1303,25 +1232,7 @@ export default function ProfilePage() {
 
             {/* Delivery address button + Cart icon matching exactly user screenshot */}
             <div className="flex items-center gap-2 min-w-0 justify-end flex-1">
-              <button
-                type="button"
-                onClick={() => setLocationModalOpen(true)}
-                className="flex items-center gap-1.5 min-w-0 text-left hover:opacity-90 active:scale-95 transition-all cursor-pointer"
-                title="Change delivery location"
-              >
-                <div className="w-7 h-7 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0">
-                  <MapPin size={14} className="text-emerald-700" />
-                </div>
-                <div className="min-w-0 text-left">
-                  <div className="flex items-center gap-0.5">
-                    <span className="text-[10px] text-neutral-500 font-medium leading-none">Deliver to</span>
-                    <ChevronDown size={11} className="text-neutral-400" />
-                  </div>
-                  <span className="text-xs font-bold text-neutral-800 block truncate max-w-[100px] sm:max-w-[130px]">
-                    {activeDisplayAddress}
-                  </span>
-                </div>
-              </button>
+              <DeliverToChip size="sm" tone="emerald" className="min-w-0" />
 
               <button
                 type="button"
@@ -1360,23 +1271,7 @@ export default function ProfilePage() {
 
           {/* Desktop Right side: Deliver to + Quick Cart */}
           <div className="hidden sm:flex items-center gap-3 shrink-0">
-            <button
-              type="button"
-              onClick={() => setLocationModalOpen(true)}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-xl hover:bg-neutral-50 transition-colors border border-transparent hover:border-neutral-200 text-left cursor-pointer"
-              title="Change delivery location"
-            >
-              <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0">
-                <MapPin size={15} className="text-emerald-700" />
-              </div>
-              <div className="text-left">
-                <p className="text-[11px] text-neutral-500 font-medium leading-none">Deliver to</p>
-                <p className="text-xs font-bold text-neutral-800 flex items-center gap-1 mt-0.5">
-                  <span className="truncate max-w-[140px]">{activeDisplayAddress}</span>
-                  <ChevronDown size={12} className="text-neutral-400" />
-                </p>
-              </div>
-            </button>
+            <DeliverToChip tone="emerald" />
 
             <button
               type="button"
@@ -2220,43 +2115,16 @@ export default function ProfilePage() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {addresses.map((addr) => {
                         const isDefault = addr.is_default;
-                        const labelLower = addr.label.toLowerCase();
-                        const LabelIcon =
-                          labelLower.includes('home')
-                            ? Home
-                            : labelLower.includes('work') || labelLower.includes('office')
-                            ? Briefcase
-                            : labelLower.includes('friend') || labelLower.includes('family')
-                            ? Users
-                            : Building;
 
                         return (
                           <div
                             key={addr._id}
                             className="bg-white rounded-2xl border border-neutral-200/90 hover:border-neutral-300 shadow-xs transition-all p-4 sm:p-5 flex flex-col justify-between relative"
                           >
-                            {/* Card Top Pill */}
                             <div>
-                              <div className="flex items-center justify-between gap-2 mb-3">
-                                <div className="flex items-center gap-2">
-                                  <div
-                                    className={`w-8 h-8 rounded-xl flex items-center justify-center font-bold ${
-                                      labelLower.includes('home')
-                                        ? 'bg-emerald-100 text-emerald-800'
-                                        : labelLower.includes('work')
-                                        ? 'bg-blue-100 text-blue-800'
-                                        : 'bg-purple-100 text-purple-800'
-                                    }`}
-                                  >
-                                    <LabelIcon className="w-4 h-4" />
-                                  </div>
-                                  <div>
-                                    <span className="text-xs font-bold uppercase text-neutral-900 tracking-wider">
-                                      {addr.label}
-                                    </span>
-                                  </div>
-                                </div>
-
+                              {/* Only the default marker sits up here now — the
+                                  address type pill went with the label picker. */}
+                              <div className="flex items-center justify-end gap-2 mb-3">
                                 {isDefault ? (
                                   <span className="flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200/70 px-2.5 py-0.5 rounded-full shadow-2xs">
                                     <Check size={11} strokeWidth={3} /> Default Address
@@ -2293,29 +2161,15 @@ export default function ProfilePage() {
                                   <p className="text-xs text-neutral-500 italic">Landmark: {addr.landmark}</p>
                                 )}
                                 <p className="text-xs text-neutral-500 font-medium">
-                                  {addr.city}, {addr.state || 'Haryana'} -{' '}
-                                  <span className="font-bold text-neutral-700">{addr.pincode}</span>
+                                  {[addr.city, addr.state].filter(Boolean).join(', ')}
+                                  {addr.pincode && (
+                                    <>
+                                      {' - '}
+                                      <span className="font-bold text-neutral-700">{addr.pincode}</span>
+                                    </>
+                                  )}
                                 </p>
                               </div>
-
-                              {/* Delivery Instructions Pills */}
-                              {addr.delivery_instructions && addr.delivery_instructions.length > 0 && (
-                                <div className="mt-3 pt-3 border-t border-neutral-100">
-                                  <span className="text-[10px] font-black uppercase text-neutral-400 block mb-1.5">
-                                    Delivery Instructions:
-                                  </span>
-                                  <div className="flex flex-wrap gap-1">
-                                    {addr.delivery_instructions.map((inst, i) => (
-                                      <span
-                                        key={i}
-                                        className="text-[11px] font-bold px-2.5 py-0.5 rounded-md bg-neutral-100 text-neutral-700"
-                                      >
-                                        {inst}
-                                      </span>
-                                    ))}
-                                  </div>
-                                </div>
-                              )}
                             </div>
 
                             {/* Card Footer Actions */}
@@ -2327,14 +2181,6 @@ export default function ProfilePage() {
                                 >
                                   <Edit2 className="w-3.5 h-3.5" />
                                   <span>Edit</span>
-                                </button>
-                                <button
-                                  onClick={() => handleShareAddress(addr)}
-                                  className="flex items-center gap-1.5 text-xs font-bold text-neutral-500 hover:text-neutral-800 transition-colors"
-                                  title="Copy address"
-                                >
-                                  <Share2 className="w-3.5 h-3.5" />
-                                  <span>Share</span>
                                 </button>
                               </div>
 
@@ -2668,56 +2514,7 @@ export default function ProfilePage() {
               </button>
             </div>
 
-            {/* GPS Detection Bar */}
-            <div className="mt-4 p-3 rounded-2xl bg-emerald-50/70 border border-emerald-200 flex items-center justify-between">
-              <div className="flex items-center gap-2 text-xs font-bold text-emerald-900">
-                <LocateFixed className="w-4 h-4 text-emerald-600" />
-                <span>Instant GPS Location Autofill</span>
-              </div>
-              <button
-                type="button"
-                onClick={handleDetectGPS}
-                disabled={detectingLocation}
-                className="px-3 py-1 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black shadow-xs transition-all active:scale-95"
-              >
-                {detectingLocation ? 'Detecting...' : 'Detect Location'}
-              </button>
-            </div>
-
             <form onSubmit={handleSaveAddress} className="space-y-4 pt-4">
-              {/* Address Type Selector */}
-              <div>
-                <label className="text-xs font-black text-neutral-700 uppercase tracking-wider block mb-1.5">
-                  Save Address As
-                </label>
-                <div className="grid grid-cols-4 gap-2">
-                  {[
-                    { label: 'Home', icon: Home },
-                    { label: 'Work', icon: Briefcase },
-                    { label: 'Friends & Family', icon: Users },
-                    { label: 'Other', icon: Building },
-                  ].map((item) => {
-                    const Icon = item.icon;
-                    const isSelected = addressForm.label === item.label;
-                    return (
-                      <button
-                        key={item.label}
-                        type="button"
-                        onClick={() => setAddressForm({ ...addressForm, label: item.label })}
-                        className={`py-2 px-1 rounded-xl text-xs font-bold border flex flex-col items-center gap-1 transition-all ${
-                          isSelected
-                            ? 'border-emerald-600 bg-emerald-50 text-emerald-800 ring-2 ring-emerald-500/20 shadow-xs'
-                            : 'border-neutral-200 text-neutral-600 hover:bg-neutral-50'
-                        }`}
-                      >
-                        <Icon className="w-3.5 h-3.5" />
-                        <span className="truncate text-[11px]">{item.label}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
               {/* Recipient Details */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
                 <div>
@@ -2801,32 +2598,6 @@ export default function ProfilePage() {
                     className="w-full px-3.5 py-2 rounded-xl border border-neutral-200 text-xs font-medium focus:ring-2 focus:ring-emerald-500 focus:outline-none"
                     required
                   />
-                </div>
-              </div>
-
-              {/* Delivery Instructions Tags */}
-              <div>
-                <label className="text-xs font-black text-neutral-700 uppercase tracking-wider block mb-1.5">
-                  Delivery Instructions for Pilot
-                </label>
-                <div className="flex flex-wrap gap-1.5">
-                  {DELIVERY_INSTRUCTION_OPTIONS.map((tag) => {
-                    const isSelected = addressForm.delivery_instructions.includes(tag);
-                    return (
-                      <button
-                        key={tag}
-                        type="button"
-                        onClick={() => toggleInstruction(tag)}
-                        className={`text-xs font-bold px-3 py-1 rounded-full border transition-all ${
-                          isSelected
-                            ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
-                            : 'bg-neutral-50 text-neutral-600 border-neutral-200 hover:bg-neutral-100'
-                        }`}
-                      >
-                        {tag}
-                      </button>
-                    );
-                  })}
                 </div>
               </div>
 
@@ -3095,11 +2866,6 @@ export default function ProfilePage() {
         </div>
       )}
 
-      {/* MODAL 8: DELIVERY LOCATION SELECTOR MODAL */}
-      <DeliveryLocationModal
-        isOpen={locationModalOpen}
-        onClose={() => setLocationModalOpen(false)}
-      />
     </div>
   );
 }
