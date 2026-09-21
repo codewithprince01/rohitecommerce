@@ -9,7 +9,7 @@ import { UPLOAD_ROOT, IMAGE_SUBDIR } from './uploads.storage.js';
 /** Absolute URL for a stored file, so a client on another origin can load it. */
 function publicUrlFor(req, filename) {
   const base = env.upload.publicUrl || `${req.protocol}://${req.get('host')}`;
-  return `${base}/uploads/${IMAGE_SUBDIR}/${filename}`;
+  return `${base}/api/uploads/${IMAGE_SUBDIR}/${filename}`;
 }
 
 /**
@@ -38,8 +38,11 @@ export const deleteImage = asyncHandler(async (req, res) => {
   if (!target) throw ApiError.badRequest('Pass the image url to delete.');
 
   const name = path.basename(target.split('?')[0]);
-  const marker = `/uploads/${IMAGE_SUBDIR}/`;
-  if (!name || (target.includes('/') && !target.includes(marker))) {
+  const markers = [`/uploads/${IMAGE_SUBDIR}/`, `/api/uploads/${IMAGE_SUBDIR}/`];
+  if (!name && target.includes('/')) {
+    return ok(res, { deleted: false, reason: 'not an uploaded file' });
+  }
+  if (target.includes('/') && !markers.some((marker) => target.includes(marker))) {
     return ok(res, { deleted: false, reason: 'not an uploaded file' });
   }
 

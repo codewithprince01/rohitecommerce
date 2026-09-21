@@ -1,0 +1,18 @@
+PORT=4000
+NODE_ENV=production
+
+CORS_ORIGINS=https://agrawalshop.in,https://www.agrawalshop.in
+
+MONGODB_URI=mongodb+srv://codewithprince0_db_user:Z5v8BZvCMrILBKRZ@cluster0.abahsrq.mongodb.net/freshmart?retryWrites=true&w=majority
+
+JWT_ACCESS_SECRET=CHANGE_THIS_TO_A_LONG_RANDOM_SECRET
+JWT_REFRESH_SECRET=CHANGE_THIS_TO_ANOTHER_LONG_RANDOM_SECRET
+JWT_ACCESS_TTL=15m
+JWT_REFRESH_TTL=30d
+
+SEED_ADMIN_EMAIL=agrawalshop@gmail.com
+SEED_ADMIN_PASSWORD=agrawalshop@1234
+SEED_ADMIN_NAME=Agrawal General & Provisional Store
+
+UPLOAD_DIR=uploads
+MAX_UPLOAD_MB=5

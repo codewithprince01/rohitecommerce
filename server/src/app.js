@@ -40,14 +40,18 @@ export function createApp() {
   // Static uploads. Helmet defaults to a same-origin resource policy, which
   // would stop the admin console (:5173) from rendering an image served by the
   // API (:4000) — these files are public assets, so opt them out.
-  app.use(
-    '/uploads',
+  const uploadStatic = [
     (_req, res, next) => {
       res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
       next();
     },
-    express.static(path.resolve(process.cwd(), env.upload.dir), { fallthrough: true, maxAge: '7d' })
-  );
+    express.static(path.resolve(process.cwd(), env.upload.dir), { fallthrough: true, maxAge: '7d' }),
+  ];
+  // Keep the direct path for existing product links. The API-prefixed path is
+  // also needed in production, where the reverse proxy forwards /api but may
+  // serve the frontend for every other path.
+  app.use('/uploads', ...uploadStatic);
+  app.use('/api/uploads', ...uploadStatic);
 
   // Rate-limited API surface
   app.use('/api', apiLimiter, routes);
