@@ -1,5 +1,5 @@
 import { HomeSection } from '../../models/Marketing.js';
-import { Product, Category } from '../../models/Catalog.js';
+import { Product, Category, Subcategory, Brand } from '../../models/Catalog.js';
 import { asyncHandler } from '../../utils/asyncHandler.js';
 import { ok, created, paginated } from '../../utils/ApiResponse.js';
 import { ApiError } from '../../utils/ApiError.js';
@@ -20,11 +20,60 @@ function formatProduct(p) {
   };
 }
 
+/**
+ * A catalog-driven section stores its node in one field, named by its type.
+ * Products carry the whole chain, so one shelf definition works at any depth.
+ */
+const SOURCE = {
+  category: { field: 'category_id', label: 'Category' },
+  subcategory: { field: 'subcategory_id', label: 'Subcategory' },
+  brand: { field: 'brand_id', label: 'Sub-sub category' },
+};
+
+/**
+ * Slugs the storefront needs to open the right listing when "See all" is
+ * tapped. A subcategory shelf has to name its category too, because the
+ * customer-facing route spells the whole path out.
+ */
+async function buildSectionLink(section) {
+  if (section.section_type === 'category' && section.category_id) {
+    return { type: 'category', category_slug: section.category_id.slug ?? null };
+  }
+
+  if (section.section_type === 'subcategory' && section.subcategory_id) {
+    const sub = section.subcategory_id;
+    const cat = sub.category_id ? await Category.findById(sub.category_id).select('slug').lean() : null;
+    return {
+      type: 'subcategory',
+      category_slug: cat?.slug ?? null,
+      subcategory_slug: sub.slug ?? null,
+    };
+  }
+
+  if (section.section_type === 'brand' && section.brand_id) {
+    const brand = section.brand_id;
+    const sub = brand.subcategory_id
+      ? await Subcategory.findById(brand.subcategory_id).select('slug category_id').lean()
+      : null;
+    const cat = sub?.category_id ? await Category.findById(sub.category_id).select('slug').lean() : null;
+    return {
+      type: 'brand',
+      category_slug: cat?.slug ?? null,
+      subcategory_slug: sub?.slug ?? null,
+      brand_slug: brand.slug ?? null,
+    };
+  }
+
+  return null;
+}
+
 // 1. PUBLIC: Get active home sections for storefront HomePage
 export const getPublicHomeSections = asyncHandler(async (_req, res) => {
   let sections = await HomeSection.find({ is_active: true })
     .sort({ sort_order: 1, created_at: 1 })
     .populate('category_id', 'name slug image')
+    .populate('subcategory_id', 'name slug image category_id')
+    .populate('brand_id', 'name slug logo subcategory_id')
     .populate({
       path: 'product_ids',
       match: { is_available: true },
@@ -75,6 +124,8 @@ export const getPublicHomeSections = asyncHandler(async (_req, res) => {
       sections = await HomeSection.find({ is_active: true })
         .sort({ sort_order: 1, created_at: 1 })
         .populate('category_id', 'name slug image')
+        .populate('subcategory_id', 'name slug image category_id')
+        .populate('brand_id', 'name slug logo subcategory_id')
         .populate({ path: 'product_ids', populate: [{ path: 'category_id', select: 'name slug' }, { path: 'variants' }] })
         .lean();
     }
@@ -83,13 +134,20 @@ export const getPublicHomeSections = asyncHandler(async (_req, res) => {
   // Format response for storefront
   const formattedSections = [];
   for (const s of sections) {
+    const source = SOURCE[s.section_type];
     let prods = [];
-    if (s.section_type === 'category' && s.category_id) {
-      const catProds = await Product.find({ category_id: s.category_id._id, is_available: true })
+
+    if (source && s[source.field]) {
+      // One query shape for all three depths: a product stores its category,
+      // subcategory and brand, so the filter is just the matching field.
+      const catalogProds = await Product.find({
+        [source.field]: s[source.field]._id,
+        is_available: true,
+      })
         .limit(15)
         .populate([{ path: 'category_id', select: 'name slug' }, { path: 'variants' }])
         .lean();
-      prods = catProds.map(formatProduct);
+      prods = catalogProds.map(formatProduct);
     } else {
       prods = (s.product_ids || []).map(formatProduct).filter(Boolean);
     }
@@ -100,7 +158,12 @@ export const getPublicHomeSections = asyncHandler(async (_req, res) => {
         title: s.title,
         subtitle: s.subtitle,
         badge: s.badge,
+        section_type: s.section_type,
+        // Kept for older clients that only ever read `category`.
         category: s.category_id,
+        subcategory: s.subcategory_id ?? null,
+        brand: s.brand_id ?? null,
+        link: await buildSectionLink(s),
         products: prods,
         sort_order: s.sort_order,
       });
@@ -123,6 +186,14 @@ export const listHomeSections = asyncHandler(async (req, res) => {
       .skip(skip)
       .limit(pageSize)
       .populate('category_id', 'name slug')
+      // The parent chain comes along so the edit form can pre-select the
+      // cascading Category → Subcategory → Sub-sub category pickers.
+      .populate('subcategory_id', 'name slug category_id')
+      .populate({
+        path: 'brand_id',
+        select: 'name slug subcategory_id',
+        populate: { path: 'subcategory_id', select: 'name slug category_id' },
+      })
       .populate('product_ids', 'name slug image')
       .lean(),
     HomeSection.countDocuments(filter),
@@ -141,22 +212,45 @@ export const listHomeSections = asyncHandler(async (req, res) => {
 });
 
 // 3. ADMIN: Create home section
+/**
+ * Keep the catalog reference that matches the chosen type and clear the other
+ * two, so switching a shelf from "Category" to "Sub-sub category" can never
+ * leave a stale id behind that silently wins at read time.
+ */
+async function resolveSource(sectionType, { category_id, subcategory_id, brand_id }) {
+  const source = SOURCE[sectionType];
+  const ids = { category_id: null, subcategory_id: null, brand_id: null };
+  if (!source) return ids;
+
+  const given = { category_id, subcategory_id, brand_id }[source.field];
+  if (!given) throw new ApiError(400, `${source.label} is required for this section`);
+
+  const Model = { category_id: Category, subcategory_id: Subcategory, brand_id: Brand }[source.field];
+  const exists = await Model.exists({ _id: given });
+  if (!exists) throw new ApiError(400, `That ${source.label.toLowerCase()} no longer exists`);
+
+  ids[source.field] = given;
+  return ids;
+}
+
 export const createHomeSection = asyncHandler(async (req, res) => {
-  const { title, subtitle, badge, section_type, category_id, product_ids, sort_order, is_active } = req.body;
+  const { title, subtitle, badge, section_type, category_id, subcategory_id, brand_id, product_ids, sort_order, is_active } = req.body;
 
   if (!title || !title.trim()) {
     throw new ApiError(400, 'Section title is required');
   }
 
+  const type = section_type || 'custom_products';
+  const sourceIds = await resolveSource(type, { category_id, subcategory_id, brand_id });
   const count = await HomeSection.countDocuments();
 
   const section = await HomeSection.create({
     title: title.trim(),
     subtitle: subtitle ? subtitle.trim() : null,
     badge: badge ? badge.trim() : null,
-    section_type: section_type || 'custom_products',
-    category_id: category_id || null,
-    product_ids: Array.isArray(product_ids) ? product_ids : [],
+    section_type: type,
+    ...sourceIds,
+    product_ids: type === 'custom_products' && Array.isArray(product_ids) ? product_ids : [],
     sort_order: sort_order !== undefined ? Number(sort_order) : count + 1,
     is_active: is_active ?? true,
   });
@@ -171,14 +265,37 @@ export const updateHomeSection = asyncHandler(async (req, res) => {
   const section = await HomeSection.findById(id);
   if (!section) throw new ApiError(404, 'Home section not found');
 
-  const { title, subtitle, badge, section_type, category_id, product_ids, sort_order, is_active } = req.body;
+  const { title, subtitle, badge, section_type, category_id, subcategory_id, brand_id, product_ids, sort_order, is_active } = req.body;
 
   if (title !== undefined) section.title = title.trim();
   if (subtitle !== undefined) section.subtitle = subtitle ? subtitle.trim() : null;
   if (badge !== undefined) section.badge = badge ? badge.trim() : null;
-  if (section_type !== undefined) section.section_type = section_type;
-  if (category_id !== undefined) section.category_id = category_id || null;
-  if (product_ids !== undefined) section.product_ids = Array.isArray(product_ids) ? product_ids : [];
+
+  // The type and its catalog reference are resolved together — a partial
+  // update that touches either one has to leave a consistent pair behind.
+  const touchesSource =
+    section_type !== undefined ||
+    category_id !== undefined ||
+    subcategory_id !== undefined ||
+    brand_id !== undefined;
+
+  if (touchesSource) {
+    const type = section_type ?? section.section_type;
+    const sourceIds = await resolveSource(type, {
+      category_id: category_id !== undefined ? category_id : section.category_id,
+      subcategory_id: subcategory_id !== undefined ? subcategory_id : section.subcategory_id,
+      brand_id: brand_id !== undefined ? brand_id : section.brand_id,
+    });
+    section.section_type = type;
+    section.category_id = sourceIds.category_id;
+    section.subcategory_id = sourceIds.subcategory_id;
+    section.brand_id = sourceIds.brand_id;
+  }
+
+  if (product_ids !== undefined) {
+    section.product_ids =
+      section.section_type === 'custom_products' && Array.isArray(product_ids) ? product_ids : [];
+  }
   if (sort_order !== undefined) section.sort_order = Number(sort_order);
   if (is_active !== undefined) section.is_active = Boolean(is_active);
 

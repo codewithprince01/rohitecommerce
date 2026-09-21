@@ -13,14 +13,71 @@ import {
   Sparkles,
   Eye,
   EyeOff,
+  FolderTree,
+  Tag,
 } from 'lucide-react';
-import { homeSectionsService, type HomeSectionItem, type HomeSectionInput } from '../../lib/services/homeSections.service';
-import { allCategories, type Category } from '../../lib/services/catalog.service';
+import {
+  homeSectionsService,
+  sectionSource,
+  type HomeSectionItem,
+  refId,
+  type HomeSectionInput,
+  type HomeSectionType,
+} from '../../lib/services/homeSections.service';
+import {
+  allCategories,
+  allSubcategories,
+  allBrands,
+  type Category,
+  type Subcategory,
+  type Brand,
+} from '../../lib/services/catalog.service';
 import { listProducts, type ProductListRow } from '../../lib/services/products.service';
 import { useToast } from '../../hooks/useToast';
 import { useConfirm } from '../../hooks/useConfirm';
 import { formatCurrency } from '../../lib/format';
 import SafeImage from '../../../components/SafeImage';
+
+/** Where a shelf takes its products from, in catalog order. */
+const SECTION_MODES: {
+  value: HomeSectionType;
+  title: string;
+  blurb: string;
+  icon: typeof Package;
+}[] = [
+  {
+    value: 'custom_products',
+    title: 'Pick Specific Products',
+    blurb: 'Choose exact items from catalog',
+    icon: Package,
+  },
+  {
+    value: 'category',
+    title: 'Entire Category',
+    blurb: 'Auto-load all items in category',
+    icon: Layers,
+  },
+  {
+    value: 'subcategory',
+    title: 'Subcategory',
+    blurb: 'Everything under one subcategory',
+    icon: FolderTree,
+  },
+  {
+    value: 'brand',
+    title: 'Sub-sub Category',
+    blurb: 'One brand / sub-sub category',
+    icon: Tag,
+  },
+];
+
+/** How a saved section describes its source in the list. */
+const SOURCE_LABEL: Record<HomeSectionType, string> = {
+  custom_products: 'Products',
+  category: 'Category',
+  subcategory: 'Subcategory',
+  brand: 'Sub-sub category',
+};
 
 export default function HomeSectionsPage() {
   const toast = useToast();
@@ -32,6 +89,10 @@ export default function HomeSectionsPage() {
   // Available catalog data for selection
   const [allProducts, setAllProducts] = useState<ProductListRow[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  // Loaded on demand for the subcategory / sub-sub category pickers, which
+  // cascade from whatever is selected above them.
+  const [subcategories, setSubcategories] = useState<Subcategory[]>([]);
+  const [brands, setBrands] = useState<Brand[]>([]);
 
   // Modal State
   const [modalOpen, setModalOpen] = useState(false);
@@ -42,8 +103,10 @@ export default function HomeSectionsPage() {
   const [title, setTitle] = useState('');
   const [subtitle, setSubtitle] = useState('');
   const [badge, setBadge] = useState('');
-  const [sectionType, setSectionType] = useState<'custom_products' | 'category'>('custom_products');
+  const [sectionType, setSectionType] = useState<HomeSectionType>('custom_products');
   const [categoryId, setCategoryId] = useState<string>('');
+  const [subcategoryId, setSubcategoryId] = useState<string>('');
+  const [brandId, setBrandId] = useState<string>('');
   const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
   const [isActive, setIsActive] = useState(true);
 
@@ -80,6 +143,36 @@ export default function HomeSectionsPage() {
     loadCatalogData();
   }, []);
 
+  // Cascade: the subcategory list follows the chosen category…
+  useEffect(() => {
+    if (!categoryId) {
+      setSubcategories([]);
+      return;
+    }
+    let cancelled = false;
+    allSubcategories(categoryId)
+      .then((rows) => !cancelled && setSubcategories(rows))
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [categoryId]);
+
+  // …and the sub-sub category list follows the chosen subcategory.
+  useEffect(() => {
+    if (!subcategoryId) {
+      setBrands([]);
+      return;
+    }
+    let cancelled = false;
+    allBrands(subcategoryId)
+      .then((rows) => !cancelled && setBrands(rows))
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [subcategoryId]);
+
   const openCreateModal = () => {
     setEditingId(null);
     setTitle('');
@@ -87,6 +180,8 @@ export default function HomeSectionsPage() {
     setBadge('');
     setSectionType('custom_products');
     setCategoryId(categories[0]?.id ?? '');
+    setSubcategoryId('');
+    setBrandId('');
     setSelectedProductIds([]);
     setIsActive(true);
     setProductSearch('');
@@ -98,8 +193,29 @@ export default function HomeSectionsPage() {
     setTitle(s.title || '');
     setSubtitle(s.subtitle || '');
     setBadge(s.badge || '');
-    setSectionType(s.section_type || 'custom_products');
-    setCategoryId(typeof s.category_id === 'object' ? s.category_id?._id || '' : s.category_id || '');
+    const type = s.section_type || 'custom_products';
+    setSectionType(type);
+
+    // Walk the stored reference back up to fill every picker above it, so an
+    // edit opens showing the same chain the section was created with.
+    const sub = typeof s.subcategory_id === 'object' ? s.subcategory_id : null;
+    const brand = typeof s.brand_id === 'object' ? s.brand_id : null;
+    const brandSub = brand && typeof brand.subcategory_id === 'object' ? brand.subcategory_id : null;
+
+    if (type === 'brand') {
+      setCategoryId(brandSub?.category_id || '');
+      setSubcategoryId(refId(brandSub));
+      setBrandId(refId(s.brand_id));
+    } else if (type === 'subcategory') {
+      setCategoryId(sub?.category_id || '');
+      setSubcategoryId(refId(s.subcategory_id));
+      setBrandId('');
+    } else {
+      setCategoryId(refId(s.category_id));
+      setSubcategoryId('');
+      setBrandId('');
+    }
+
     const pids = (s.product_ids || []).map((p: any) => (typeof p === 'object' ? p._id || p.id : p));
     setSelectedProductIds(pids);
     setIsActive(s.is_active ?? true);
@@ -118,6 +234,18 @@ export default function HomeSectionsPage() {
       toast.error('Please select at least 1 product for this section');
       return;
     }
+    if (sectionType === 'category' && !categoryId) {
+      toast.error('Please choose a category for this section');
+      return;
+    }
+    if (sectionType === 'subcategory' && !subcategoryId) {
+      toast.error('Please choose a subcategory for this section');
+      return;
+    }
+    if (sectionType === 'brand' && !brandId) {
+      toast.error('Please choose a sub-sub category for this section');
+      return;
+    }
 
     setModalLoading(true);
     try {
@@ -127,6 +255,8 @@ export default function HomeSectionsPage() {
         badge: badge.trim() || null,
         section_type: sectionType,
         category_id: sectionType === 'category' ? categoryId : null,
+        subcategory_id: sectionType === 'subcategory' ? subcategoryId : null,
+        brand_id: sectionType === 'brand' ? brandId : null,
         product_ids: sectionType === 'custom_products' ? selectedProductIds : [],
         is_active: isActive,
       };
@@ -259,7 +389,11 @@ export default function HomeSectionsPage() {
         <div className="space-y-3">
           {sections.map((s, idx) => {
             const productCount = Array.isArray(s.product_ids) ? s.product_ids.length : 0;
-            const categoryName = typeof s.category_id === 'object' ? s.category_id?.name : 'Category';
+            const source = sectionSource(s);
+            const sourceText =
+              s.section_type === 'custom_products'
+                ? `${productCount} Products`
+                : `${SOURCE_LABEL[s.section_type]}: ${source?.name ?? '—'}`;
 
             return (
               <div
@@ -314,9 +448,7 @@ export default function HomeSectionsPage() {
 
                     <p className="text-xs text-neutral-500 mt-0.5 truncate">
                       {s.subtitle || 'Custom home shelf'} •{' '}
-                      <span className="font-semibold text-neutral-700">
-                        {s.section_type === 'category' ? `Category: ${categoryName}` : `${productCount} Products`}
-                      </span>
+                      <span className="font-semibold text-neutral-700">{sourceText}</span>
                     </p>
                   </div>
                 </div>
@@ -431,57 +563,120 @@ export default function HomeSectionsPage() {
                   Products Selection Mode
                 </label>
                 <div className="grid grid-cols-2 gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setSectionType('custom_products')}
-                    className={`p-3 rounded-2xl border text-left flex items-center gap-3 transition-colors cursor-pointer ${
-                      sectionType === 'custom_products'
-                        ? 'border-primary-500 bg-primary-50/50 text-primary-900 font-bold'
-                        : 'border-neutral-200 bg-white text-neutral-700 hover:bg-neutral-50'
-                    }`}
-                  >
-                    <Package size={18} className={sectionType === 'custom_products' ? 'text-primary-600' : 'text-neutral-400'} />
-                    <div>
-                      <div className="text-xs font-bold">Pick Specific Products</div>
-                      <div className="text-[11px] text-neutral-500 font-normal">Choose exact items from catalog</div>
-                    </div>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setSectionType('category')}
-                    className={`p-3 rounded-2xl border text-left flex items-center gap-3 transition-colors cursor-pointer ${
-                      sectionType === 'category'
-                        ? 'border-primary-500 bg-primary-50/50 text-primary-900 font-bold'
-                        : 'border-neutral-200 bg-white text-neutral-700 hover:bg-neutral-50'
-                    }`}
-                  >
-                    <Layers size={18} className={sectionType === 'category' ? 'text-primary-600' : 'text-neutral-400'} />
-                    <div>
-                      <div className="text-xs font-bold">Entire Category</div>
-                      <div className="text-[11px] text-neutral-500 font-normal">Auto-load all items in category</div>
-                    </div>
-                  </button>
+                  {SECTION_MODES.map((mode) => {
+                    const active = sectionType === mode.value;
+                    return (
+                      <button
+                        key={mode.value}
+                        type="button"
+                        onClick={() => setSectionType(mode.value)}
+                        className={`p-3 rounded-2xl border text-left flex items-center gap-3 transition-colors cursor-pointer ${
+                          active
+                            ? 'border-primary-500 bg-primary-50/50 text-primary-900 font-bold'
+                            : 'border-neutral-200 bg-white text-neutral-700 hover:bg-neutral-50'
+                        }`}
+                      >
+                        <mode.icon size={18} className={active ? 'text-primary-600' : 'text-neutral-400'} />
+                        <div className="min-w-0">
+                          <div className="text-xs font-bold">{mode.title}</div>
+                          <div className="text-[11px] text-neutral-500 font-normal">{mode.blurb}</div>
+                        </div>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
-              {/* If Category Selected */}
-              {sectionType === 'category' && (
-                <div>
-                  <label className="text-xs font-bold text-neutral-700 block mb-1">
-                    Select Category
-                  </label>
-                  <select
-                    value={categoryId}
-                    onChange={(e) => setCategoryId(e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-neutral-200 text-sm font-medium focus:ring-2 focus:ring-primary-500 outline-none bg-white"
-                  >
-                    {categories.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name}
-                      </option>
-                    ))}
-                  </select>
+              {/* Catalog pickers — each level reveals the one below it. */}
+              {sectionType !== 'custom_products' && (
+                <div className="space-y-3 rounded-2xl border border-neutral-200 bg-neutral-50/60 p-3.5">
+                  <div>
+                    <label className="text-xs font-bold text-neutral-700 block mb-1">
+                      Category <span className="text-rose-500">*</span>
+                    </label>
+                    <select
+                      value={categoryId}
+                      onChange={(e) => {
+                        setCategoryId(e.target.value);
+                        setSubcategoryId('');
+                        setBrandId('');
+                      }}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-neutral-200 text-sm font-medium focus:ring-2 focus:ring-primary-500 outline-none bg-white"
+                    >
+                      <option value="">Select a category…</option>
+                      {categories.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {(sectionType === 'subcategory' || sectionType === 'brand') && (
+                    <div>
+                      <label className="text-xs font-bold text-neutral-700 block mb-1">
+                        Subcategory <span className="text-rose-500">*</span>
+                      </label>
+                      <select
+                        value={subcategoryId}
+                        disabled={!categoryId}
+                        onChange={(e) => {
+                          setSubcategoryId(e.target.value);
+                          setBrandId('');
+                        }}
+                        className="w-full px-3.5 py-2.5 rounded-xl border border-neutral-200 text-sm font-medium focus:ring-2 focus:ring-primary-500 outline-none bg-white disabled:bg-neutral-100 disabled:text-neutral-400"
+                      >
+                        <option value="">
+                          {categoryId ? 'Select a subcategory…' : 'Choose a category first'}
+                        </option>
+                        {subcategories.map((s) => (
+                          <option key={s.id} value={s.id}>
+                            {s.name}
+                            {s.product_count != null ? ` (${s.product_count} products)` : ''}
+                          </option>
+                        ))}
+                      </select>
+                      {categoryId && subcategories.length === 0 && (
+                        <p className="text-[11px] text-amber-700 mt-1">
+                          This category has no subcategories yet.
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  {sectionType === 'brand' && (
+                    <div>
+                      <label className="text-xs font-bold text-neutral-700 block mb-1">
+                        Sub-sub Category / Brand <span className="text-rose-500">*</span>
+                      </label>
+                      <select
+                        value={brandId}
+                        disabled={!subcategoryId}
+                        onChange={(e) => setBrandId(e.target.value)}
+                        className="w-full px-3.5 py-2.5 rounded-xl border border-neutral-200 text-sm font-medium focus:ring-2 focus:ring-primary-500 outline-none bg-white disabled:bg-neutral-100 disabled:text-neutral-400"
+                      >
+                        <option value="">
+                          {subcategoryId ? 'Select a sub-sub category…' : 'Choose a subcategory first'}
+                        </option>
+                        {brands.map((b) => (
+                          <option key={b.id} value={b.id}>
+                            {b.name}
+                            {b.product_count != null ? ` (${b.product_count} products)` : ''}
+                          </option>
+                        ))}
+                      </select>
+                      {subcategoryId && brands.length === 0 && (
+                        <p className="text-[11px] text-amber-700 mt-1">
+                          This subcategory has no sub-sub categories yet.
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  <p className="text-[11px] text-neutral-500">
+                    The shelf loads available products from here automatically — new products added later show up on
+                    their own, without editing this section.
+                  </p>
                 </div>
               )}
 

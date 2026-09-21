@@ -10,14 +10,37 @@ export interface SectionProductRef {
   image?: string | null;
 }
 
+/** Where a shelf gets its products from. */
+export type HomeSectionType = 'custom_products' | 'category' | 'subcategory' | 'brand';
+
+/** A populated catalog reference as the list endpoint returns it. */
+export interface CatalogRef {
+  _id: string;
+  id?: string;
+  name: string;
+  slug: string;
+  /** Parent of a subcategory ref — an id, since nothing above it is populated. */
+  category_id?: string | null;
+  /** Parent of a sub-sub category ref, populated one level so the chain is whole. */
+  subcategory_id?: CatalogRef | string | null;
+}
+
+/** Read an id off a field that may be a bare id or a populated document. */
+export function refId(value: CatalogRef | string | null | undefined): string {
+  if (!value) return '';
+  return typeof value === 'object' ? value._id || value.id || '' : value;
+}
+
 export interface HomeSectionItem {
   id: string;
   _id?: string;
   title: string;
   subtitle?: string | null;
   badge?: string | null;
-  section_type: 'custom_products' | 'category';
-  category_id?: { _id: string; id?: string; name: string; slug: string } | string | null;
+  section_type: HomeSectionType;
+  category_id?: CatalogRef | string | null;
+  subcategory_id?: CatalogRef | string | null;
+  brand_id?: CatalogRef | string | null;
   product_ids?: SectionProductRef[] | string[];
   sort_order: number;
   is_active: boolean;
@@ -29,11 +52,26 @@ export interface HomeSectionInput {
   title: string;
   subtitle?: string | null;
   badge?: string | null;
-  section_type: 'custom_products' | 'category';
+  section_type: HomeSectionType;
   category_id?: string | null;
+  subcategory_id?: string | null;
+  brand_id?: string | null;
   product_ids?: string[];
   sort_order?: number;
   is_active?: boolean;
+}
+
+/** The populated reference a section of this type points at, if any. */
+export function sectionSource(s: HomeSectionItem): CatalogRef | null {
+  const ref =
+    s.section_type === 'category'
+      ? s.category_id
+      : s.section_type === 'subcategory'
+      ? s.subcategory_id
+      : s.section_type === 'brand'
+      ? s.brand_id
+      : null;
+  return ref && typeof ref === 'object' ? ref : null;
 }
 
 // `api.*` already unwraps the `{ success, data }` envelope, so these return the

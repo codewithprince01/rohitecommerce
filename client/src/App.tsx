@@ -68,8 +68,8 @@ function AppContent() {
             ? 'pt-[104px] lg:pt-[73px]'
             : 'pt-0'
         } ${
-          // Mobile: Add bottom padding for nav
-          showSidebar ? 'pb-20 lg:pb-0' : 'pb-0'
+          // Mobile: clear the 70px fixed bottom nav
+          showSidebar ? 'pb-[70px] lg:pb-0' : 'pb-0'
         }`}
       >
         {renderPage()}

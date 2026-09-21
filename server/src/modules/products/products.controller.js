@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 import slugify from 'slugify';
-import { Product, ProductVariant, Category, Brand } from '../../models/Catalog.js';
+import { Product, ProductVariant, Category, Subcategory, Brand } from '../../models/Catalog.js';
 import { asyncHandler } from '../../utils/asyncHandler.js';
 import { ok, created, paginated } from '../../utils/ApiResponse.js';
 import { ApiError } from '../../utils/ApiError.js';
@@ -13,6 +13,7 @@ export const LOW_STOCK_THRESHOLD = 10;
 // Collection names (resilient to Mongoose pluralization changes).
 const VARIANTS = ProductVariant.collection.name;
 const CATEGORIES = Category.collection.name;
+const SUBCATEGORIES = Subcategory.collection.name;
 const BRANDS = Brand.collection.name;
 
 // Product fields the table is allowed to sort by, plus variant-derived fields
@@ -26,10 +27,11 @@ const SORTABLE = new Set(['name', 'created_at', 'is_available', 'total_stock', '
  */
 export const listProducts = asyncHandler(async (req, res) => {
   const { page, pageSize, search, sortBy, sortDir, skip } = parseListParams(req.query);
-  const match = {
-    ...searchFilter(search, ['name', 'slug']),
-    ...equalityFilters(req.query, ['category_id', 'subcategory_id', 'brand_id', 'is_available']),
-  };
+  // Equality filters are indexed, so they narrow the collection first. The text
+  // search runs later in the pipeline, once the category/subcategory/brand
+  // names are joined on — a shopper typing "Parle" or "Biscuit" means the
+  // hierarchy, not a product whose own name happens to contain the word.
+  const match = equalityFilters(req.query, ['category_id', 'subcategory_id', 'brand_id', 'is_available']);
   // category_id / brand_id arrive as strings; cast for the aggregation match.
   for (const key of ['category_id', 'subcategory_id', 'brand_id']) {
     if (match[key] && mongoose.isValidObjectId(match[key])) {
@@ -73,13 +75,37 @@ export const listProducts = asyncHandler(async (req, res) => {
     {
       $lookup: { from: CATEGORIES, localField: 'category_id', foreignField: '_id', as: 'category' },
     },
+    { $lookup: { from: SUBCATEGORIES, localField: 'subcategory_id', foreignField: '_id', as: 'subcategory' } },
     { $lookup: { from: BRANDS, localField: 'brand_id', foreignField: '_id', as: 'brand' } },
+    // One search box over the whole hierarchy: the product's own name, slug and
+    // tags, plus the category, subcategory and sub-sub category it sits under.
+    ...(search
+      ? [{
+          $match: searchFilter(search, [
+            'name',
+            'slug',
+            'tags',
+            'category.name',
+            'category.slug',
+            'subcategory.name',
+            'subcategory.slug',
+            'brand.name',
+            'brand.slug',
+          ]),
+        }]
+      : []),
     {
       $addFields: {
         category: {
           $let: {
             vars: { c: { $arrayElemAt: ['$category', 0] } },
             in: { $cond: ['$$c', { id: { $toString: '$$c._id' }, name: '$$c.name' }, null] },
+          },
+        },
+        subcategory: {
+          $let: {
+            vars: { s: { $arrayElemAt: ['$subcategory', 0] } },
+            in: { $cond: ['$$s', { id: { $toString: '$$s._id' }, name: '$$s.name' }, null] },
           },
         },
         brand: {

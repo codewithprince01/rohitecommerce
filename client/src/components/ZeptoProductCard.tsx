@@ -2,6 +2,7 @@ import React from 'react';
 import { Plus, Minus, Heart, ImageOff } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import type { ProductWithVariants, ProductVariant } from '../lib/supabase';
+import { variantPricing } from '../lib/pricing';
 
 interface ZeptoProductCardProps {
   product: ProductWithVariants;
@@ -32,9 +33,8 @@ export default function ZeptoProductCard({
     : undefined;
 
   const id = product.id;
-  const price = variant?.price ?? 0;
-  const originalPrice = variant?.original_price ?? price;
-  const discountAmount = originalPrice > price ? originalPrice - price : 0;
+  const { price, originalPrice, savings, percent: discountPercent } = variantPricing(variant);
+  const inStock = Boolean(variant && variant.stock > 0);
   const isFav = isInWishlist(id) || (Boolean(product.slug) && isInWishlist(product.slug));
 
   const cartItem = variant ? cart.find((c) => c.product.id === id && c.variant.id === variant.id) : undefined;
@@ -102,36 +102,10 @@ export default function ZeptoProductCard({
             />
           </button>
 
-          {variant && (
-            <div className="absolute bottom-1 right-1 z-10">
-              {quantity === 0 ? (
-                <button
-                  type="button"
-                  onClick={handleAdd}
-                  className="bg-white hover:bg-primary-600 text-primary-600 hover:text-white border-2 border-primary-500 font-black text-[10.5px] px-2 py-0.5 rounded-lg shadow-sm active:scale-95 transition-all flex items-center justify-center leading-tight"
-                >
-                  ADD
-                </button>
-              ) : (
-                <div className="bg-primary-600 text-white text-[10.5px] font-bold px-1.5 py-0.5 rounded-lg shadow-sm flex items-center gap-1.5">
-                  <button
-                    type="button"
-                    onClick={handleDecrement}
-                    className="w-3 h-3 flex items-center justify-center hover:opacity-80 active:scale-90"
-                  >
-                    <Minus size={9} className="stroke-[3]" />
-                  </button>
-                  <span className="min-w-[8px] text-center font-black text-[10.5px]">{quantity}</span>
-                  <button
-                    type="button"
-                    onClick={handleIncrement}
-                    className="w-3 h-3 flex items-center justify-center hover:opacity-80 active:scale-90"
-                  >
-                    <Plus size={9} className="stroke-[3]" />
-                  </button>
-                </div>
-              )}
-            </div>
+          {discountPercent > 0 && (
+            <span className="absolute top-1.5 left-1.5 bg-[#15803D] text-white text-[9.5px] font-black px-1.5 py-0.5 rounded-[4px] shadow-sm leading-tight z-10">
+              {discountPercent}% OFF
+            </span>
           )}
         </div>
 
@@ -148,9 +122,9 @@ export default function ZeptoProductCard({
                   </span>
                 )}
               </div>
-              {discountAmount > 0 && (
+              {savings > 0 && (
                 <p className="text-[9px] text-[#15803D] font-bold mt-0.5 leading-none">
-                  ₹{discountAmount} OFF
+                  Save ₹{Math.round(savings)}
                 </p>
               )}
             </>
@@ -170,15 +144,45 @@ export default function ZeptoProductCard({
         </div>
       </div>
 
-      {/* Stock line — real inventory, in place of the old fabricated rating */}
-      <div className="px-2 pb-1.5">
-        <div className="flex items-center gap-1 text-[9px] font-medium pt-1 border-t border-neutral-100">
-          {variant && variant.stock > 0 ? (
-            <span className="text-neutral-500">In stock</span>
+      {/* Footer: real inventory on the left, the add control in the corner.
+          There is no rating here — we have never collected one, and a made-up
+          score would be a claim about other shoppers that nobody made. */}
+      <div className="px-2 pb-2 pt-1 mt-auto border-t border-neutral-100 flex items-end justify-between gap-1.5">
+        <span className={`text-[9px] font-medium leading-tight ${inStock ? 'text-neutral-500' : 'text-rose-500 font-semibold'}`}>
+          {inStock ? 'In stock' : 'Out of stock'}
+        </span>
+
+        {variant && (
+          quantity === 0 ? (
+            <button
+              type="button"
+              onClick={handleAdd}
+              className="bg-white hover:bg-primary-600 text-primary-600 hover:text-white border-2 border-primary-500 font-black text-[10.5px] px-3 py-1 rounded-lg shadow-sm active:scale-95 transition-all leading-tight shrink-0"
+            >
+              ADD
+            </button>
           ) : (
-            <span className="text-rose-500 font-semibold">Out of stock</span>
-          )}
-        </div>
+            <div className="bg-primary-600 text-white rounded-lg shadow-sm flex items-center gap-2 px-1.5 py-1 shrink-0">
+              <button
+                type="button"
+                onClick={handleDecrement}
+                aria-label="Decrease quantity"
+                className="w-3.5 h-3.5 flex items-center justify-center hover:opacity-80 active:scale-90"
+              >
+                <Minus size={10} className="stroke-[3]" />
+              </button>
+              <span className="min-w-[10px] text-center font-black text-[10.5px] leading-none">{quantity}</span>
+              <button
+                type="button"
+                onClick={handleIncrement}
+                aria-label="Increase quantity"
+                className="w-3.5 h-3.5 flex items-center justify-center hover:opacity-80 active:scale-90"
+              >
+                <Plus size={10} className="stroke-[3]" />
+              </button>
+            </div>
+          )
+        )}
       </div>
     </div>
   );

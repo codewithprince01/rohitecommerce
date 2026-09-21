@@ -8,7 +8,7 @@ import ZeptoShelfRow from '../components/ZeptoShelfRow';
 import ZeptoProductCard from '../components/ZeptoProductCard';
 
 export default function HomePage() {
-  const { navigate, setCategory } = useApp();
+  const { navigate, setCategory, setSubcategory, setBrand } = useApp();
   const [categories, setCategories] = useState<Category[]>([]);
   const [featuredProducts, setFeaturedProducts] = useState<ProductWithVariants[]>([]);
   const [homeSections, setHomeSections] = useState<PublicHomeSection[]>([]);
@@ -36,6 +36,35 @@ export default function HomePage() {
     fetchData();
   }, []);
 
+  /**
+   * Open the listing a shelf was built from. The storefront routes spell the
+   * whole path out, so a subcategory shelf sets its category too; a hand-picked
+   * shelf has no single listing and just opens the category index.
+   */
+  const openSectionListing = (section: PublicHomeSection) => {
+    const link = section.link;
+    if (!link) {
+      navigate('categories');
+      return;
+    }
+
+    setCategory(link.category_slug ?? null);
+
+    if (link.type === 'category') {
+      navigate('categories');
+      return;
+    }
+
+    setSubcategory(link.subcategory_slug ?? null);
+    if (link.type === 'subcategory') {
+      navigate('brands');
+      return;
+    }
+
+    setBrand(link.brand_slug ?? null);
+    navigate('products');
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[50vh]">
@@ -57,12 +86,7 @@ export default function HomePage() {
           subtitle={section.subtitle}
           badge={section.badge}
           productObjects={section.products}
-          onSeeAll={() => {
-            if (section.category?.slug) {
-              setCategory(section.category.slug);
-            }
-            navigate('categories');
-          }}
+          onSeeAll={() => openSectionListing(section)}
         />
       ))}
 

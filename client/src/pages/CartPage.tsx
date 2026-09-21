@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   ArrowLeft,
   Plus,
@@ -27,7 +27,18 @@ import {
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import SafeImage from '../components/SafeImage';
-import { createCustomerOrder } from '../lib/profileApi';
+import {
+  createCustomerOrder,
+  fetchAddresses,
+  addAddress,
+  type AddressItem as SavedAddress,
+} from '../lib/profileApi';
+
+/** One readable line from a saved address record. */
+function formatSavedAddress(a: SavedAddress): string {
+  const parts = [a.line1, a.line2, a.landmark, a.city, a.state].filter(Boolean).join(', ');
+  return a.pincode ? `${parts} - ${a.pincode}` : parts;
+}
 
 // Seller's WhatsApp destination number (with country code 91)
 const SELLER_WHATSAPP_NUMBER = '919285108057';
@@ -119,7 +130,7 @@ function buildWhatsAppMessage(order: {
 }
 
 export default function CartPage() {
-  const { state, updateCartQuantity, removeFromCart, clearCart, navigate, cartTotal, cartCount } = useApp();
+  const { state, updateCartQuantity, removeFromCart, clearCart, navigate, cartTotal, cartCount, refreshDeliveryLocation } = useApp();
   const [step, setStep] = useState<CheckoutStep>(() => {
     try {
       const savedStep = sessionStorage.getItem('freshmart_checkout_step');
@@ -132,15 +143,58 @@ export default function CartPage() {
   });
   const [selectedSlot, setSelectedSlot] = useState('10-15');
 
-  // Address state
-  const [addresses, setAddresses] = useState<AddressItem[]>([
-    { id: '1', label: 'Home', address: 'Fatehchand colony, ward no 5, near ram mandir chauraha, sabalgarh, Morena, madhya pradesh - 476229' },
-    { id: '2', label: 'Shop/Office', address: 'Main Market, Sabalgarh, Morena, Madhya Pradesh - 476229' },
-  ]);
-  const [selectedAddressId, setSelectedAddressId] = useState<string>('1');
+  // Address state — the shopper's own saved addresses, loaded from the account.
+  // These used to be two hard-coded sample addresses, which meant every visitor
+  // was offered one particular household's street as their delivery address.
+  const [addresses, setAddresses] = useState<AddressItem[]>([]);
+  const [addressesLoading, setAddressesLoading] = useState(true);
+  const [selectedAddressId, setSelectedAddressId] = useState<string>('');
   const [showAddAddress, setShowAddAddress] = useState(false);
   const [newLabel, setNewLabel] = useState<'Home' | 'Office' | 'Other'>('Home');
   const [newAddressText, setNewAddressText] = useState('');
+  const [newCity, setNewCity] = useState('');
+  const [newPincode, setNewPincode] = useState('');
+  const [savingAddress, setSavingAddress] = useState(false);
+  const [addressError, setAddressError] = useState<string | null>(null);
+
+  const addFormRef = useRef<HTMLFormElement>(null);
+
+  /**
+   * Open the new-address form and bring it into view.
+   *
+   * The form renders below the saved addresses, so on a phone — and on a laptop
+   * with a long list — it opened off-screen and the button looked dead. Scroll
+   * it into view so pressing "Add New" visibly does something.
+   */
+  const openAddAddress = () => {
+    setAddressError(null);
+    setShowAddAddress(true);
+  };
+
+  useEffect(() => {
+    if (!showAddAddress) return;
+    const id = window.setTimeout(() => {
+      addFormRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 50);
+    return () => window.clearTimeout(id);
+  }, [showAddAddress]);
+
+  const loadAddresses = useCallback(async (selectId?: string) => {
+    try {
+      const rows = await fetchAddresses();
+      setAddresses(rows.map((a) => ({ id: a._id, label: a.label, address: formatSavedAddress(a) })));
+      const preferred = selectId ?? (rows.find((a) => a.is_default) ?? rows[0])?._id ?? '';
+      setSelectedAddressId(preferred);
+    } catch {
+      setAddresses([]);
+    } finally {
+      setAddressesLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadAddresses();
+  }, [loadAddresses]);
 
   // Confirmed Order state
   const [confirmedOrder, setConfirmedOrder] = useState<ConfirmedOrder | null>(null);
@@ -151,19 +205,42 @@ export default function CartPage() {
   const discount = 0;
   const total = cartTotal;
 
-  const handleAddNewAddress = (e: React.FormEvent) => {
+  const handleAddNewAddress = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newAddressText.trim()) return;
-    const newId = Date.now().toString();
-    const newAddr: AddressItem = {
-      id: newId,
-      label: newLabel,
-      address: newAddressText.trim(),
-    };
-    setAddresses(prev => [...prev, newAddr]);
-    setSelectedAddressId(newId);
-    setNewAddressText('');
-    setShowAddAddress(false);
+    setAddressError(null);
+
+    if (!newAddressText.trim() || !newCity.trim()) {
+      setAddressError('Fill in the address and the city.');
+      return;
+    }
+    if (newPincode.trim().length !== 6) {
+      setAddressError('Pincode must be 6 digits.');
+      return;
+    }
+
+    setSavingAddress(true);
+    try {
+      // Saved to the account, not just this page: an address typed at checkout
+      // used to vanish on reload and never reached the profile.
+      const saved = await addAddress({
+        label: newLabel,
+        line1: newAddressText.trim(),
+        city: newCity.trim(),
+        pincode: newPincode.trim(),
+        is_default: addresses.length === 0,
+      });
+      setNewAddressText('');
+      setNewCity('');
+      setNewPincode('');
+      setShowAddAddress(false);
+      await loadAddresses(saved?._id);
+      await refreshDeliveryLocation();
+    } catch (err: any) {
+      // Say so on screen. A silent failure here reads as "the button is dead".
+      setAddressError(err?.message || 'Could not save the address. Check your connection and try again.');
+    } finally {
+      setSavingAddress(false);
+    }
   };
 
   const handlePlaceOrder = () => {
@@ -171,6 +248,12 @@ export default function CartPage() {
 
     const orderId = `GRO${Date.now().toString().slice(-6)}`;
     const chosenAddress = addresses.find(a => a.id === selectedAddressId) || addresses[0];
+    // No stand-in address: an order has to carry somewhere real to deliver to.
+    if (!chosenAddress) {
+      setStep('address');
+      setShowAddAddress(true);
+      return;
+    }
     const chosenSlot = DELIVERY_SLOTS.find(s => s.id === selectedSlot) || DELIVERY_SLOTS[0];
 
     // Customer profile info
@@ -540,7 +623,8 @@ export default function CartPage() {
   // MAIN CART & CHECKOUT STEPS VIEW
   // ─────────────────────────────────────────────────────────────
   return (
-    <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 pb-28 lg:pb-8">
+    // pb clears both fixed layers on mobile: 70px nav + ~66px action bar.
+    <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 pb-[150px] lg:pb-8">
       {/* Top Breadcrumb / Stepper Bar */}
       <div className="flex items-center justify-between gap-3 mb-4 sm:mb-5 pb-3 border-b border-neutral-200/80">
         <div className="flex items-center gap-3">
@@ -720,8 +804,8 @@ export default function CartPage() {
                 </h3>
                 <button
                   type="button"
-                  onClick={() => setShowAddAddress(!showAddAddress)}
-                  className="text-xs font-bold text-primary-600 hover:text-primary-700 flex items-center gap-1"
+                  onClick={openAddAddress}
+                  className="text-xs font-bold text-primary-600 hover:text-primary-700 flex items-center gap-1 px-2 py-1.5 -mr-2 rounded-lg hover:bg-primary-50 active:scale-95 transition-all"
                 >
                   <Plus size={14} />
                   <span>Add New</span>
@@ -729,6 +813,23 @@ export default function CartPage() {
               </div>
 
               <div className="space-y-2.5">
+                {addressesLoading && (
+                  <p className="text-xs text-neutral-400 px-0.5">Loading your saved addresses…</p>
+                )}
+
+                {!addressesLoading && addresses.length === 0 && !showAddAddress && (
+                  <div className="bg-white rounded-xl p-4 border border-neutral-200/80 text-center space-y-2">
+                    <p className="text-xs text-neutral-500">You have no saved delivery address yet.</p>
+                    <button
+                      type="button"
+                      onClick={openAddAddress}
+                      className="px-4 py-2 text-xs font-bold text-white bg-primary-600 hover:bg-primary-700 rounded-lg active:scale-95 transition-all"
+                    >
+                      Add your address
+                    </button>
+                  </div>
+                )}
+
                 {addresses.map((addr) => {
                   const isSelected = selectedAddressId === addr.id;
                   return (
@@ -759,7 +860,11 @@ export default function CartPage() {
                 })}
 
                 {showAddAddress && (
-                  <form onSubmit={handleAddNewAddress} className="bg-white rounded-xl p-4 border border-primary-200 shadow-2xs space-y-3">
+                  <form
+                    ref={addFormRef}
+                    onSubmit={handleAddNewAddress}
+                    className="bg-white rounded-xl p-4 border-2 border-primary-300 shadow-sm space-y-3 scroll-mt-24"
+                  >
                     <div className="flex items-center justify-between">
                       <h4 className="text-xs font-bold text-neutral-800">Add New Address</h4>
                       <button type="button" onClick={() => setShowAddAddress(false)} className="text-neutral-400">
@@ -782,14 +887,36 @@ export default function CartPage() {
                       ))}
                     </div>
 
+                    {/* No native `required`: the browser's own popup is easy to
+                        miss on a phone, so validation is reported inline below. */}
                     <textarea
-                      required
+                      autoFocus
                       rows={2}
                       value={newAddressText}
                       onChange={e => setNewAddressText(e.target.value)}
-                      placeholder="House / Flat No., Street, Landmark, City, Pincode"
+                      placeholder="House / Flat No., Street, Landmark"
                       className="w-full text-xs p-2.5 rounded-xl border border-neutral-200 focus:outline-none focus:border-primary-500 resize-none"
                     />
+
+                    <div className="grid grid-cols-2 gap-2">
+                      <input
+                        value={newCity}
+                        onChange={e => setNewCity(e.target.value)}
+                        placeholder="City"
+                        className="w-full text-xs p-2.5 rounded-xl border border-neutral-200 focus:outline-none focus:border-primary-500"
+                      />
+                      <input
+                        inputMode="numeric"
+                        value={newPincode}
+                        onChange={e => setNewPincode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                        placeholder="6-digit pincode"
+                        className="w-full text-xs p-2.5 rounded-xl border border-neutral-200 focus:outline-none focus:border-primary-500"
+                      />
+                    </div>
+
+                    {addressError && (
+                      <p className="text-[11px] font-semibold text-rose-600">{addressError}</p>
+                    )}
 
                     <div className="flex justify-end gap-2">
                       <button
@@ -801,9 +928,10 @@ export default function CartPage() {
                       </button>
                       <button
                         type="submit"
-                        className="px-4 py-1.5 text-xs font-bold text-white bg-primary-600 hover:bg-primary-700 rounded-lg shadow-2xs"
+                        disabled={savingAddress}
+                        className="px-4 py-1.5 text-xs font-bold text-white bg-primary-600 hover:bg-primary-700 rounded-lg shadow-2xs disabled:opacity-60"
                       >
-                        Save Address
+                        {savingAddress ? 'Saving…' : 'Save Address'}
                       </button>
                     </div>
                   </form>
@@ -916,8 +1044,10 @@ export default function CartPage() {
         </div>
       </div>
 
-      {/* Mobile Bottom Fixed Bar */}
-      <div className="lg:hidden fixed bottom-14 left-0 right-0 p-3 bg-white border-t border-neutral-200 z-40 shadow-lg">
+      {/* Mobile Bottom Fixed Bar — sits exactly on top of the 70px nav. It used
+          to start at 56px, so the nav (same z-index, painted later) covered its
+          lower edge and swallowed taps meant for this button. */}
+      <div className="lg:hidden fixed bottom-[70px] left-0 right-0 p-3 bg-white border-t border-neutral-200 z-40 shadow-lg">
         <div className="flex items-center justify-between gap-3 max-w-md mx-auto">
           <div>
             <p className="text-[10px] text-neutral-400 font-bold uppercase">Total To Pay</p>

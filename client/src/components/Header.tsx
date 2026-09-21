@@ -48,7 +48,7 @@ export default function Header() {
                     type="text"
                     value={localSearch}
                     onChange={(e) => handleSearch(e.target.value)}
-                    placeholder="Search groceries, brands, offers..."
+                    placeholder="Search products, categories, brands…"
                     className="flex-1 bg-transparent text-sm text-neutral-700 placeholder-neutral-400 outline-none"
                   />
                   {localSearch ? (
@@ -73,7 +73,7 @@ export default function Header() {
                   <div className="text-left">
                     <p className="text-[11px] text-neutral-500 font-medium">Deliver to</p>
                     <p className="text-xs font-bold text-neutral-800 flex items-center gap-1">
-                      <span className="truncate max-w-[110px]">{deliveryLocation.area || deliveryLocation.city}</span>
+                      <span className="truncate max-w-[110px]">{deliveryLocation.area || deliveryLocation.city || 'Select location'}</span>
                       <ChevronDown size={12} className="text-neutral-400" />
                     </p>
                   </div>
@@ -160,7 +160,7 @@ export default function Header() {
                     <ChevronDown size={11} className="text-neutral-400" />
                   </div>
                   <span className="text-xs font-bold text-neutral-800 block truncate max-w-[105px] sm:max-w-[140px]">
-                    {deliveryLocation.area || deliveryLocation.city}
+                    {deliveryLocation.area || deliveryLocation.city || 'Select location'}
                   </span>
                 </div>
               </button>
@@ -189,7 +189,7 @@ export default function Header() {
                   type="text"
                   value={localSearch}
                   onChange={(e) => handleSearch(e.target.value)}
-                  placeholder="Search groceries, brands, offers..."
+                  placeholder="Search products, categories, brands…"
                   className="flex-1 bg-transparent text-xs sm:text-sm text-neutral-700 placeholder-neutral-400 outline-none min-w-0"
                 />
                 {localSearch ? (

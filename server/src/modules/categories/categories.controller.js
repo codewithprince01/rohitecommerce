@@ -117,7 +117,11 @@ export const listSubcategories = asyncHandler((req, res) =>
           category: {
             $let: {
               vars: { c: { $arrayElemAt: ['$cat', 0] } },
-              in: { $cond: ['$$c', { id: { $toString: '$$c._id' }, name: '$$c.name' }, null] },
+              // The slug comes along so the storefront can build the full
+              // /categories/<cat>/<sub> path from a search result alone.
+              in: {
+                $cond: ['$$c', { id: { $toString: '$$c._id' }, name: '$$c.name', slug: '$$c.slug' }, null],
+              },
             },
           },
         },
@@ -146,7 +150,19 @@ export const listBrands = asyncHandler((req, res) =>
           subcategory: {
             $let: {
               vars: { s: { $arrayElemAt: ['$sub', 0] } },
-              in: { $cond: ['$$s', { id: { $toString: '$$s._id' }, name: '$$s.name' }, null] },
+              // Slug + parent id so a brand found by search knows its whole path.
+              in: {
+                $cond: [
+                  '$$s',
+                  {
+                    id: { $toString: '$$s._id' },
+                    name: '$$s.name',
+                    slug: '$$s.slug',
+                    category_id: { $toString: '$$s.category_id' },
+                  },
+                  null,
+                ],
+              },
             },
           },
         },

@@ -28,6 +28,22 @@ interface ProductFormProps {
 
 type VariantDraft = Partial<ProductVariant> & { _key: string };
 
+/**
+ * Re-derive the discount whenever a price changes.
+ *
+ * The three fields describe one thing, and a typed-in percentage used to be
+ * able to contradict the prices — a pack could carry "12% off" with an MRP
+ * equal to its price, which the storefront then refused to advertise because
+ * there was no actual saving. Deriving it keeps the number true, and a shop
+ * that wants a visible discount raises the MRP instead.
+ */
+function withDiscount(v: VariantDraft, patch: Partial<VariantDraft>): Partial<VariantDraft> {
+  const price = Number(patch.price ?? v.price) || 0;
+  const mrp = Number(patch.original_price ?? v.original_price) || 0;
+  const discount = mrp > price ? Math.round(((mrp - price) / mrp) * 100) : 0;
+  return { ...patch, discount };
+}
+
 const blankVariant = (): VariantDraft => ({
   _key: Math.random().toString(36).slice(2),
   quantity: '',
@@ -285,13 +301,21 @@ export default function ProductForm({ open, product, onClose, onSaved }: Product
                     <Input value={v.quantity ?? ''} onChange={(e) => updateVariant(v._key, { quantity: e.target.value })} placeholder="500g" />
                   </FormField>
                   <FormField label="Price ₹">
-                    <Input type="number" value={v.price ?? 0} onChange={(e) => updateVariant(v._key, { price: Number(e.target.value) })} />
+                    <Input
+                      type="number"
+                      value={v.price ?? 0}
+                      onChange={(e) => updateVariant(v._key, withDiscount(v, { price: Number(e.target.value) }))}
+                    />
                   </FormField>
-                  <FormField label="MRP ₹">
-                    <Input type="number" value={v.original_price ?? 0} onChange={(e) => updateVariant(v._key, { original_price: Number(e.target.value) })} />
+                  <FormField label="MRP ₹" hint="Must be above the price to show a discount">
+                    <Input
+                      type="number"
+                      value={v.original_price ?? 0}
+                      onChange={(e) => updateVariant(v._key, withDiscount(v, { original_price: Number(e.target.value) }))}
+                    />
                   </FormField>
-                  <FormField label="Discount %">
-                    <Input type="number" value={v.discount ?? 0} onChange={(e) => updateVariant(v._key, { discount: Number(e.target.value) })} />
+                  <FormField label="Discount %" hint="Calculated from MRP and price">
+                    <Input type="number" value={v.discount ?? 0} readOnly disabled />
                   </FormField>
                   <FormField label="Stock">
                     <Input type="number" value={v.stock ?? 0} onChange={(e) => updateVariant(v._key, { stock: Number(e.target.value) })} />

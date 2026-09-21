@@ -1,10 +1,12 @@
 import React from 'react';
-import { Star, Clock } from 'lucide-react';
+import { Clock } from 'lucide-react';
+
+// No rating field: we have never collected store ratings, so there is no
+// honest number to put here.
 export interface Store {
   id: string;
   name: string;
   image: string;
-  rating: number;
   deliveryTime: string;
   distance: string;
   offer: string;
@@ -28,10 +30,6 @@ export default function StoreCard({ store }: StoreCardProps) {
         <span className="absolute top-2 right-2 bg-accent-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
           {store.offer}
         </span>
-        <div className="absolute bottom-2 left-2 flex items-center gap-1 bg-white/90 rounded-full px-1.5 py-0.5">
-          <Star size={10} className="text-amber-400 fill-amber-400" />
-          <span className="text-[10px] font-semibold text-neutral-700">{store.rating}</span>
-        </div>
       </div>
       <div className="p-3">
         <p className="text-sm font-semibold text-neutral-800">{store.name}</p>

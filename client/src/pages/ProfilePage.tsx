@@ -163,6 +163,7 @@ export default function ProfilePage() {
     setCart,
     deliveryLocation,
     setDeliveryLocation,
+    refreshDeliveryLocation,
   } = useApp();
   const currentTab: ProfileTabType = state.profileTab || 'orders';
 
@@ -1000,6 +1001,7 @@ export default function ProfilePage() {
       setAddresses(addrs);
       const p = await fetchProfile();
       setProfile(p);
+      await refreshDeliveryLocation();
     } catch (err: any) {
       showToast(err.message || 'Failed to save address', 'error');
     } finally {
@@ -1018,6 +1020,7 @@ export default function ProfilePage() {
       setAddresses(addrs);
       const p = await fetchProfile();
       setProfile(p);
+      await refreshDeliveryLocation();
     } catch (err: any) {
       showToast(err.message || 'Failed to delete address', 'error');
     } finally {
@@ -1032,6 +1035,7 @@ export default function ProfilePage() {
       showToast('Primary delivery location updated!');
       const addrs = await fetchAddresses();
       setAddresses(addrs);
+      await refreshDeliveryLocation();
     } catch (err: any) {
       showToast(err.message || 'Failed to update default address', 'error');
     } finally {

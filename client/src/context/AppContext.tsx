@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useReducer, ReactNode, useEffect } from 'react';
 import type { ProductWithVariants, ProductVariant } from '../lib/supabase';
 import { pruneMissingProductIds } from '../lib/data';
+import { fetchAddresses, type AddressItem } from '../lib/profileApi';
 
 export interface CartItem {
   product: ProductWithVariants;
@@ -72,17 +73,25 @@ function getInitialWishlist(): string[] {
   }
 }
 
+/** Short line for the header: the most specific part of a saved address. */
+export function locationFromAddress(a: AddressItem): DeliveryLocation {
+  return {
+    city: a.city || '',
+    area: a.line1 || a.landmark || a.city || '',
+    pincode: a.pincode || '',
+    addressLabel: a.label || 'Home',
+  };
+}
+
 function getInitialLocation(): DeliveryLocation {
   try {
     const saved = localStorage.getItem('freshmart_location');
     if (saved) return JSON.parse(saved);
   } catch (e) {}
-  return {
-    city: 'Sabalgarh',
-    area: 'Ram Mandir Chauraha',
-    pincode: '476229',
-    addressLabel: 'Home',
-  };
+  // Nothing is invented here. Until a saved address loads (or the shopper picks
+  // an area), the header asks for a location instead of naming one shop's own
+  // neighbourhood for every visitor.
+  return { city: '', area: '', pincode: '', addressLabel: '' };
 }
 
 function getInitialStateFromUrl(): Omit<AppState, 'cart' | 'wishlist' | 'deliveryLocation'> {
@@ -354,6 +363,8 @@ interface AppContextType {
   clearWishlist: () => void;
   deliveryLocation: DeliveryLocation;
   setDeliveryLocation: (location: DeliveryLocation) => void;
+  /** Re-read the saved default address into the header. */
+  refreshDeliveryLocation: () => Promise<void>;
   navigate: (page: PageType, profileTab?: ProfileTabType) => void;
   setProfileTab: (tab: ProfileTabType) => void;
   setCategory: (slug: string | null) => void;
@@ -419,6 +430,26 @@ export function AppProvider({ children }: { children: ReactNode }) {
     dispatch({ type: 'SET_LOCATION', location });
   };
 
+  /**
+   * Point the header at the address checkout will actually deliver to — the
+   * saved default. Showing anything else there is a promise the order would
+   * not keep, so the saved address wins over whatever this browser remembered.
+   */
+  const refreshDeliveryLocation = React.useCallback(async () => {
+    try {
+      const rows = await fetchAddresses();
+      if (!rows.length) return;
+      const preferred = rows.find((a) => a.is_default) ?? rows[0];
+      dispatch({ type: 'SET_LOCATION', location: locationFromAddress(preferred) });
+    } catch {
+      // Offline or logged out: keep whatever the shopper last picked.
+    }
+  }, []);
+
+  useEffect(() => {
+    refreshDeliveryLocation();
+  }, [refreshDeliveryLocation]);
+
   // Older builds mirrored placed orders into localStorage. The backend is the
   // record of truth now, so drop that copy — otherwise orders deleted from the
   // database keep reappearing on this device.
@@ -482,6 +513,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         clearWishlist,
         deliveryLocation: state.deliveryLocation,
         setDeliveryLocation,
+        refreshDeliveryLocation,
         navigate: (page, profileTab) => dispatch({ type: 'SET_PAGE', page, profileTab }),
         setProfileTab: (tab) => dispatch({ type: 'SET_PROFILE_TAB', tab }),
         setCategory: (slug) => dispatch({ type: 'SET_CATEGORY', slug }),

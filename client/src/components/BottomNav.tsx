@@ -104,8 +104,11 @@ export default function BottomNav() {
 
       {/* Mobile Bottom Navigation (hidden on product-detail so product action bar takes over) */}
       {!isProductDetail && (
-        <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white shadow-bottom border-t border-neutral-100">
-        <div className="max-w-md mx-auto flex items-center justify-around px-1 py-1.5">
+        // h-[70px] is fixed on purpose: the checkout's floating action bar
+        // stacks directly on top of this nav, and it needs a height it can
+        // rely on rather than one that shifts with the icon/label metrics.
+        <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 h-[70px] bg-white shadow-bottom border-t border-neutral-100">
+        <div className="max-w-md mx-auto h-full flex items-center justify-around px-1">
           {mobileTabs.map(({ id, label, icon: Icon }) => {
             const active = state.currentPage === id;
             const isCart = id === 'cart';

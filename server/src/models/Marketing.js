@@ -48,10 +48,14 @@ const homeSectionSchema = new mongoose.Schema(
     badge: { type: String, default: null, trim: true },
     section_type: {
       type: String,
-      enum: ['custom_products', 'category'],
+      enum: ['custom_products', 'category', 'subcategory', 'brand'],
       default: 'custom_products',
     },
+    // Exactly one of these is set, picked by `section_type`; the shelf then
+    // auto-loads whatever is available at that level of the catalog.
     category_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Category', default: null },
+    subcategory_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Subcategory', default: null },
+    brand_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Brand', default: null },
     product_ids: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Product' }],
     sort_order: { type: Number, default: 0 },
     is_active: { type: Boolean, default: true, index: true },

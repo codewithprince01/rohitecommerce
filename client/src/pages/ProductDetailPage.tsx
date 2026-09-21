@@ -22,6 +22,7 @@ import {
   getProductsBySubcategory,
 } from '../lib/data';
 import type { ProductWithVariants, ProductVariant, Category, Subcategory } from '../lib/supabase';
+import { variantPricing } from '../lib/pricing';
 import ZeptoProductCard from '../components/ZeptoProductCard';
 
 export default function ProductDetailPage() {
@@ -167,9 +168,12 @@ export default function ProductDetailPage() {
     );
   }
 
-  const savings = selectedVariant ? selectedVariant.original_price - selectedVariant.price : 0;
-  const currentPrice = selectedVariant?.price || 0;
-  const currentOriginalPrice = selectedVariant?.original_price || currentPrice;
+  // Same rule as the product cards, so a pack never advertises a discount here
+  // that the card does not show (or the other way round).
+  const pricing = variantPricing(selectedVariant);
+  const savings = pricing.savings;
+  const currentPrice = pricing.price;
+  const currentOriginalPrice = pricing.originalPrice;
   const currentWeight = selectedVariant?.quantity || '1 pack';
 
   return (
@@ -280,9 +284,9 @@ export default function ProductDetailPage() {
           <div className="md:w-[44%] p-3.5 sm:p-5 border-b md:border-b-0 md:border-r border-neutral-100 flex flex-col justify-between relative bg-white">
             {/* Top Row: Discount Pill & Wishlist Button */}
             <div className="flex items-center justify-between w-full z-10">
-              {selectedVariant && selectedVariant.discount > 0 ? (
+              {pricing.hasDiscount ? (
                 <span className="bg-emerald-600 text-white text-[10px] font-bold px-2 py-0.5 rounded shadow-xs">
-                  {selectedVariant.discount}% OFF
+                  {pricing.percent}% OFF
                 </span>
               ) : (
                 <span />
@@ -381,7 +385,7 @@ export default function ProductDetailPage() {
                         ₹{currentOriginalPrice}
                       </span>
                       <span className="bg-emerald-100 text-emerald-800 text-[11px] font-bold px-2 py-0.5 rounded-md">
-                        {selectedVariant?.discount ? `${selectedVariant.discount}% OFF` : `₹${savings} OFF`}
+                        {pricing.percent}% OFF · Save ₹{Math.round(savings)}
                       </span>
                     </>
                   )}
@@ -400,7 +404,7 @@ export default function ProductDetailPage() {
                   <div className="flex flex-wrap gap-2">
                     {product.variants.map((v) => {
                       const isSelected = selectedVariant?.id === v.id;
-                      const vSavings = v.original_price > v.price ? v.original_price - v.price : 0;
+                      const vPricing = variantPricing(v);
                       return (
                         <button
                           key={v.id}
@@ -427,9 +431,9 @@ export default function ProductDetailPage() {
                               <Check size={10} className="stroke-[3]" />
                             </div>
                           )}
-                          {!isSelected && vSavings > 0 && (
+                          {!isSelected && vPricing.hasDiscount && (
                             <span className="text-[9px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200/60 px-1.5 py-0.5 rounded">
-                              {v.discount > 0 ? `${v.discount}% OFF` : `₹${vSavings} OFF`}
+                              {vPricing.percent}% OFF
                             </span>
                           )}
                         </button>

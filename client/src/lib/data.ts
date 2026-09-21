@@ -82,6 +82,16 @@ function mapBrand(r: any): Brand {
     slug: r.slug,
     logo: r.logo ?? null,
     description: r.description ?? null,
+    // Parent summary from the list endpoint — enough to build the full
+    // /categories/<cat>/<sub>/<brand> path from a search result.
+    subcategory: r.subcategory
+      ? ({
+          id: r.subcategory.id,
+          name: r.subcategory.name,
+          slug: r.subcategory.slug,
+          category_id: r.subcategory.category_id,
+        } as Subcategory)
+      : undefined,
     created_at: r.created_at || '',
   };
 }
@@ -206,6 +216,50 @@ export async function searchProducts(query: string): Promise<ProductWithVariants
   return rows.map(mapProduct);
 }
 
+/** Everything one search box can turn up, grouped by what it is. */
+export interface CatalogSearchResults {
+  products: ProductWithVariants[];
+  categories: Category[];
+  subcategories: Subcategory[];
+  brands: Brand[];
+  total: number;
+}
+
+/**
+ * Search the whole catalog at once.
+ *
+ * A shopper typing "Parle" does not know whether that is a product, a brand or
+ * a category in this shop, so all four are queried in parallel and whatever
+ * matches is offered. Products already match through their hierarchy server
+ * side, so "Parle" also returns every product filed under it.
+ */
+export async function searchCatalog(query: string): Promise<CatalogSearchResults> {
+  const term = query.trim();
+  const empty: CatalogSearchResults = { products: [], categories: [], subcategories: [], brands: [], total: 0 };
+  if (!term) return empty;
+
+  const q = encodeURIComponent(term);
+  const [productRows, categoryRows, subRows, brandRows] = await Promise.all([
+    getRows<any>(`/products?pageSize=40&search=${q}`),
+    getRows<any>(`/categories?pageSize=10&search=${q}`),
+    getRows<any>(`/categories/sub/list?pageSize=10&search=${q}`),
+    getRows<any>(`/categories/brand/list?pageSize=10&search=${q}`),
+  ]);
+
+  const products = productRows.map(mapProduct);
+  const categories = categoryRows.map(mapCategory);
+  const subcategories = subRows.map(mapSubcategory);
+  const brands = brandRows.map(mapBrand);
+
+  return {
+    products,
+    categories,
+    subcategories,
+    brands,
+    total: products.length + categories.length + subcategories.length + brands.length,
+  };
+}
+
 /** Fetch one product. The API resolves both an id and a slug on this route. */
 export async function getProductById(id: string): Promise<ProductWithVariants | null> {
   const doc = await getJson<any>(`/products/${encodeURIComponent(id)}`);
@@ -242,12 +296,25 @@ export async function pruneMissingProductIds(ids: string[]): Promise<string[]> {
 
 /* ----------------------- Admin-configured storefront ---------------------- */
 
+/** Where "See all" should land for a shelf built from a catalog node. */
+export interface HomeSectionLink {
+  type: 'category' | 'subcategory' | 'brand';
+  category_slug?: string | null;
+  subcategory_slug?: string | null;
+  brand_slug?: string | null;
+}
+
 export interface PublicHomeSection {
   id: string;
   title: string;
   subtitle?: string;
   badge?: string;
+  section_type?: 'custom_products' | 'category' | 'subcategory' | 'brand';
   category?: { _id: string; name: string; slug: string; image?: string };
+  subcategory?: { _id: string; name: string; slug: string; image?: string } | null;
+  brand?: { _id: string; name: string; slug: string; logo?: string } | null;
+  /** Null for hand-picked shelves, which have no single listing to open. */
+  link?: HomeSectionLink | null;
   products: ProductWithVariants[];
   sort_order: number;
 }
