@@ -435,6 +435,26 @@ export async function applySheet(buffer, filename, { dryRun = false, adminId = n
     updated += 1;
   }
 
+  /* ---- Product-level edits, applied once per product ---- */
+  for (const [productId, bucket] of productEdits) {
+    const product = await Product.findById(productId);
+    if (!product) continue; // its SKU row already reported the problem
+
+    const patch = {};
+    for (const [key, value] of Object.entries(bucket.values)) {
+      const field = PRODUCT_FIELD[key];
+      if (!field) continue;
+      if (!sameValue(product[field], value)) patch[field] = value;
+    }
+    if (Object.keys(patch).length === 0) continue;
+
+    counts.products += 1;
+    if (!dryRun) {
+      Object.assign(product, patch);
+      await product.save();
+    }
+  }
+
   return {
     dryRun,
     file: filename,
