@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import {
-  Plus, Pencil, Trash2, ImageOff, RefreshCw, Layers, FolderTree, Tag, Package, FileSpreadsheet,
+  Plus, Pencil, Trash2, ImageOff, RefreshCw, Layers, FolderTree, Tag, Package, UploadCloud,
   AlertTriangle, TrendingUp,
 } from 'lucide-react';
 import PageHeader from '../../components/ui/PageHeader';
@@ -18,7 +18,9 @@ import { useConfirm } from '../../hooks/useConfirm';
 import { useAdminAuth } from '../../context/AdminAuthContext';
 import { useAsync } from '../../hooks/useAsync';
 import * as catalog from '../../lib/services/catalog.service';
-import CatalogSheetModal from '../../components/bulk/CatalogSheetModal';
+import CatalogSheetModal, { type Tab as SheetTab } from '../../components/bulk/CatalogSheetModal';
+import TemplateMenu from '../../components/bulk/TemplateMenu';
+import ExportMenu from '../../components/bulk/ExportMenu';
 import type { Category, Subcategory, Brand, CatalogStats } from '../../lib/services/catalog.service';
 
 type Tab = 'categories' | 'subcategories' | 'brands';
@@ -28,6 +30,12 @@ export default function CategoriesPage() {
   const toast = useToast();
   const [tab, setTab] = useState<Tab>('categories');
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [sheetTab, setSheetTab] = useState<SheetTab>('update');
+
+  const openSheet = (tab: SheetTab) => {
+    setSheetTab(tab);
+    setSheetOpen(true);
+  };
   const canManage = can('categories.manage');
 
   const { data: stats, loading: statsLoading, reload: reloadStats } = useAsync(() => catalog.getCatalogStats(), []);
@@ -48,10 +56,14 @@ export default function CategoriesPage() {
             <Button variant="outline" icon={<RefreshCw size={16} />} onClick={reloadStats}>
               Refresh
             </Button>
+            <ExportMenu />
             {canManage && (
-              <Button icon={<FileSpreadsheet size={16} />} onClick={() => setSheetOpen(true)}>
-                Import / Export
-              </Button>
+              <>
+                <TemplateMenu type="catalog" onUpload={() => openSheet('add')} />
+                <Button icon={<UploadCloud size={16} />} onClick={() => openSheet('update')}>
+                  Import
+                </Button>
+              </>
             )}
           </>
         }
@@ -125,6 +137,7 @@ export default function CategoriesPage() {
         open={sheetOpen}
         onClose={() => setSheetOpen(false)}
         type="catalog"
+        initialTab={sheetTab}
         onDone={reloadStats}
         onError={(m) => toast.error(m)}
         onSuccess={(m) => toast.success(m)}

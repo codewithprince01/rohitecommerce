@@ -120,7 +120,10 @@ export default function BrandsPage() {
       {/* ========================================================= */}
       {/* MOBILE STICKY HEADER & SUBCATEGORY BAR */}
       {/* ========================================================= */}
-      <div className="lg:hidden sticky top-[104px] z-30 bg-white border-b border-neutral-100 shadow-xs">
+      {/* Title row — deliberately NOT sticky. The app header is already fixed
+          at 104px; pinning this as well froze about a third of a phone screen,
+          so scrolling barely moved anything and felt stuck. */}
+      <div className="lg:hidden bg-white border-b border-neutral-100">
         {/* Row 1: Back, Title, Count, Sort Button */}
         <div className="px-3.5 py-2.5 flex items-center justify-between gap-2">
           <div className="flex items-center gap-2.5 min-w-0">
@@ -179,9 +182,15 @@ export default function BrandsPage() {
           </div>
         </div>
 
+      </div>
+
+      {/* Only the filters stay pinned — that is what you actually reach for
+          while scrolling a long list. */}
+      {(siblingSubcategories.length > 1 || brands.length > 1) && (
+      <div className="lg:hidden sticky top-[104px] z-30 bg-white border-b border-neutral-100 shadow-xs">
         {/* Row 2: Horizontal Sibling Subcategories Rail (Mobile) */}
         {siblingSubcategories.length > 1 && (
-          <div className="px-3 pb-2.5 pt-0.5 flex gap-2 overflow-x-auto scrollbar-none">
+          <div className="px-3 py-2 flex gap-2 overflow-x-auto scrollbar-none">
             {siblingSubcategories.map((sub) => {
               const isActive = sub.slug === state.selectedSubcategorySlug;
               return (
@@ -244,6 +253,7 @@ export default function BrandsPage() {
           </div>
         )}
       </div>
+      )}
 
       {/* ========================================================= */}
       {/* DESKTOP TOP HEADER & BREADCRUMBS */}

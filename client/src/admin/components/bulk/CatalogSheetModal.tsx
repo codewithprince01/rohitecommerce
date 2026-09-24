@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   FileSpreadsheet, FileText, UploadCloud, X, ShieldCheck, Upload, Download,
   CheckCircle2, AlertTriangle, Info, KeyRound, Pencil, PlusCircle, ChevronDown,
@@ -29,12 +29,14 @@ interface CatalogSheetModalProps {
   type: BulkUploadType;
   /** Applied to the edit-sheet export so it matches what the table shows. */
   filters?: Record<string, string | number | boolean | undefined>;
+  /** Which job the caller's button is for; the dialog opens on that tab. */
+  initialTab?: Tab;
   onDone: () => void;
   onError: (message: string) => void;
   onSuccess: (message: string) => void;
 }
 
-type Tab = 'update' | 'add';
+export type Tab = 'update' | 'add';
 const MAX_MB = 10;
 
 /**
@@ -50,11 +52,18 @@ export default function CatalogSheetModal({
   onClose,
   type,
   filters = {},
+  initialTab = 'update',
   onDone,
   onError,
   onSuccess,
 }: CatalogSheetModalProps) {
-  const [tab, setTab] = useState<Tab>('update');
+  const [tab, setTab] = useState<Tab>(initialTab);
+
+  // The caller picks the tab when it opens, so the Template button lands on
+  // "Add new" and the Export button on "Update existing".
+  useEffect(() => {
+    if (open) setTab(initialTab);
+  }, [open, initialTab]);
 
   return (
     <Modal open={open} onClose={onClose} title="Import / Export" size="lg">

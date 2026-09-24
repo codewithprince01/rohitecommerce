@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import {
-  Plus, Pencil, Trash2, Eye, EyeOff, ImageOff,
-  Package, CheckCircle2, AlertTriangle, XCircle, Wallet, FileSpreadsheet,
+  Plus, Pencil, Trash2, Eye, EyeOff, ImageOff, UploadCloud,
+  Package, CheckCircle2, AlertTriangle, XCircle, Wallet,
 } from 'lucide-react';
 import PageHeader from '../../components/ui/PageHeader';
 import SearchInput from '../../components/ui/SearchInput';
@@ -27,7 +27,9 @@ import {
 import { allCategories } from '../../lib/services/catalog.service';
 import { formatCurrency, formatCompactCurrency } from '../../lib/format';
 import ProductForm from './ProductForm';
-import CatalogSheetModal from '../../components/bulk/CatalogSheetModal';
+import CatalogSheetModal, { type Tab as SheetTab } from '../../components/bulk/CatalogSheetModal';
+import TemplateMenu from '../../components/bulk/TemplateMenu';
+import ExportMenu from '../../components/bulk/ExportMenu';
 
 const LOW_STOCK = 10;
 
@@ -42,6 +44,12 @@ export default function ProductsPage() {
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<ProductListRow | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [sheetTab, setSheetTab] = useState<SheetTab>('update');
+
+  const openSheet = (tab: SheetTab) => {
+    setSheetTab(tab);
+    setSheetOpen(true);
+  };
 
   // Refresh both the table and the KPI cards after any mutation.
   const refreshAll = useCallback(() => {
@@ -229,10 +237,15 @@ export default function ProductsPage() {
         subtitle="Manage your catalog, pricing, pack sizes and inventory."
         actions={
           <div className="flex items-center gap-2">
-            {/* One door for every sheet job — five separate buttons here made
-                it too easy to feed the wrong file to the wrong importer. */}
-            <Button variant="outline" icon={<FileSpreadsheet size={16} />} onClick={() => setSheetOpen(true)}>
-              Import / Export
+            {/* Export hands out the sheet of what already exists (with ids);
+                Template hands out a blank one for adding new records. Separate
+                buttons keep the two files from being mistaken for each other. */}
+            <ExportMenu filters={{ search: table.search || undefined }} />
+            {can('categories.manage') && (
+              <TemplateMenu type="products" onUpload={() => openSheet('add')} />
+            )}
+            <Button variant="outline" icon={<UploadCloud size={16} />} onClick={() => openSheet('update')}>
+              Import
             </Button>
             {can('products.create') && (
               <Button icon={<Plus size={16} />} onClick={openCreate}>
@@ -361,6 +374,7 @@ export default function ProductsPage() {
         onClose={() => setSheetOpen(false)}
         type="products"
         filters={{ search: table.search || undefined }}
+        initialTab={sheetTab}
         onDone={refreshAll}
         onError={(m) => toast.error(m)}
         onSuccess={(m) => toast.success(m)}

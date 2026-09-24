@@ -1,8 +1,8 @@
 import React, { useState, useCallback } from 'react';
 import {
   ImageOff, History, AlertTriangle, Boxes, Layers, Wallet, PackageX, Archive,
-  Download, RefreshCw, ArrowDownToLine, ArrowUpFromLine, Activity, Zap,
-  TrendingUp, ClipboardList, PackageCheck, ArrowRight, FileSpreadsheet,
+  RefreshCw, ArrowDownToLine, ArrowUpFromLine, Activity, Zap,
+  TrendingUp, ClipboardList, PackageCheck, ArrowRight, UploadCloud,
   type LucideIcon,
 } from 'lucide-react';
 import PageHeader from '../../components/ui/PageHeader';
@@ -16,6 +16,7 @@ import Modal from '../../components/ui/Modal';
 import Drawer from '../../components/ui/Drawer';
 import FormField, { Input, Select } from '../../components/ui/FormField';
 import CatalogSheetModal from '../../components/bulk/CatalogSheetModal';
+import ExportMenu from '../../components/bulk/ExportMenu';
 import { EmptyState } from '../../components/ui/States';
 import { useTable } from '../../hooks/useTable';
 import { useToast } from '../../hooks/useToast';
@@ -28,7 +29,7 @@ import {
   adjustStock,
   bulkAdjustStock,
   variantMovements,
-  exportInventoryCsv,
+
   type InventoryRow,
   type InventoryAnalytics,
   type ReorderItem,
@@ -39,18 +40,6 @@ import { allCategories } from '../../lib/services/catalog.service';
 import { formatCurrency, formatCompactCurrency, formatDateTime, timeAgo } from '../../lib/format';
 
 /* ------------------------------- Helpers -------------------------------- */
-
-function downloadCsv(filename: string, csv: string) {
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  URL.revokeObjectURL(url);
-}
 
 const STATUS_BADGE: Record<StockStatus, string> = {
   healthy: 'bg-primary-100 text-primary-700',
@@ -86,7 +75,7 @@ export default function InventoryPage() {
   const [historyRow, setHistoryRow] = useState<InventoryRow | null>(null);
   const [bulkOpen, setBulkOpen] = useState(false);
   const [reorderOpen, setReorderOpen] = useState(false);
-  const [exporting, setExporting] = useState(false);
+
   const [sheetOpen, setSheetOpen] = useState(false);
 
   const canAdjust = can('inventory.adjust');
@@ -96,24 +85,6 @@ export default function InventoryPage() {
     reloadStats();
     reloadAnalytics();
   }, [table, reloadStats, reloadAnalytics]);
-
-  const handleExport = async () => {
-    setExporting(true);
-    try {
-      const csv = await exportInventoryCsv({
-        search: table.search,
-        sortBy: table.sortBy,
-        sortDir: table.sortDir,
-        filters: table.filters,
-      });
-      downloadCsv(`inventory-${new Date().toISOString().slice(0, 10)}.csv`, csv);
-      toast.success('Export ready');
-    } catch (err: any) {
-      toast.error(err?.message ?? 'Export failed');
-    } finally {
-      setExporting(false);
-    }
-  };
 
   const quickRestock = useCallback(
     async (item: ReorderItem) => {
@@ -222,12 +193,10 @@ export default function InventoryPage() {
             <Button variant="outline" size="sm" icon={<RefreshCw size={15} />} onClick={refreshAll}>
               Refresh
             </Button>
-            <Button variant="outline" icon={<Download size={16} />} onClick={handleExport} loading={exporting}>
-              Export
-            </Button>
+            <ExportMenu filters={{ search: table.search || undefined, ...table.filters }} />
             {canAdjust && (
-              <Button variant="outline" icon={<FileSpreadsheet size={16} />} onClick={() => setSheetOpen(true)}>
-                Update by sheet
+              <Button variant="outline" icon={<UploadCloud size={16} />} onClick={() => setSheetOpen(true)}>
+                Import
               </Button>
             )}
             {canAdjust && (
