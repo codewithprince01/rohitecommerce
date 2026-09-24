@@ -2,7 +2,7 @@ import React, { useState, useCallback } from 'react';
 import {
   ImageOff, History, AlertTriangle, Boxes, Layers, Wallet, PackageX, Archive,
   Download, RefreshCw, ArrowDownToLine, ArrowUpFromLine, Activity, Zap,
-  TrendingUp, ClipboardList, PackageCheck, ArrowRight,
+  TrendingUp, ClipboardList, PackageCheck, ArrowRight, FileSpreadsheet,
   type LucideIcon,
 } from 'lucide-react';
 import PageHeader from '../../components/ui/PageHeader';
@@ -15,6 +15,7 @@ import BulkActionBar from '../../components/ui/BulkActionBar';
 import Modal from '../../components/ui/Modal';
 import Drawer from '../../components/ui/Drawer';
 import FormField, { Input, Select } from '../../components/ui/FormField';
+import SheetSyncModal from './SheetSyncModal';
 import { EmptyState } from '../../components/ui/States';
 import { useTable } from '../../hooks/useTable';
 import { useToast } from '../../hooks/useToast';
@@ -86,6 +87,7 @@ export default function InventoryPage() {
   const [bulkOpen, setBulkOpen] = useState(false);
   const [reorderOpen, setReorderOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [sheetOpen, setSheetOpen] = useState(false);
 
   const canAdjust = can('inventory.adjust');
 
@@ -224,6 +226,11 @@ export default function InventoryPage() {
               Export
             </Button>
             {canAdjust && (
+              <Button variant="outline" icon={<FileSpreadsheet size={16} />} onClick={() => setSheetOpen(true)}>
+                Update by sheet
+              </Button>
+            )}
+            {canAdjust && (
               <Button icon={<ClipboardList size={16} />} onClick={() => setReorderOpen(true)}>
                 Reorder ({analytics?.reorderList.length ?? 0})
               </Button>
@@ -356,6 +363,15 @@ export default function InventoryPage() {
           onSuccess={(m) => toast.success(m)}
         />
       )}
+
+      <SheetSyncModal
+        open={sheetOpen}
+        onClose={() => setSheetOpen(false)}
+        filters={{ search: table.search || undefined, ...table.filters }}
+        onImported={refreshAll}
+        onError={(m) => toast.error(m)}
+        onSuccess={(m) => toast.success(m)}
+      />
 
       {historyRow && <HistoryDrawer row={historyRow} onClose={() => setHistoryRow(null)} />}
 

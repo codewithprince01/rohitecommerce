@@ -24,6 +24,7 @@ import {
 import type { ProductWithVariants, ProductVariant, Category, Subcategory } from '../lib/supabase';
 import { variantPricing } from '../lib/pricing';
 import ZeptoProductCard from '../components/ZeptoProductCard';
+import PackPicker from '../components/PackPicker';
 
 export default function ProductDetailPage() {
   const {
@@ -395,51 +396,18 @@ export default function ProductDetailPage() {
                 </span>
               </div>
 
-              {/* Select Pack Size */}
+              {/* Pack sizes — each one can be added on its own, so a shopper
+                  wanting the ₹5 and the ₹20 pack does not have to choose. */}
               {product.variants && product.variants.length > 0 && (
                 <div className="flex flex-col gap-1.5">
                   <span className="text-[10.5px] font-bold text-neutral-500 uppercase tracking-wider">
-                    Select Pack Size
+                    {product.variants.length > 1 ? 'Pack sizes — add any you want' : 'Pack size'}
                   </span>
-                  <div className="flex flex-wrap gap-2">
-                    {product.variants.map((v) => {
-                      const isSelected = selectedVariant?.id === v.id;
-                      const vPricing = variantPricing(v);
-                      return (
-                        <button
-                          key={v.id}
-                          onClick={() => setSelectedVariant(v)}
-                          className={`flex items-center justify-between gap-3 px-3 py-1.5 rounded-xl border transition-all active:scale-95 ${
-                            isSelected
-                              ? 'border-emerald-600 bg-emerald-50/70 shadow-xs ring-1 ring-emerald-500/30'
-                              : 'border-neutral-200 hover:border-neutral-300 bg-white'
-                          }`}
-                        >
-                          <div className="text-left">
-                            <p className={`text-[11.5px] font-bold leading-tight ${isSelected ? 'text-emerald-950' : 'text-neutral-800'}`}>
-                              {v.quantity}
-                            </p>
-                            <div className="flex items-center gap-1 mt-0.5">
-                              <span className="text-[11px] font-bold text-neutral-900">₹{v.price}</span>
-                              {v.original_price > v.price && (
-                                <span className="text-[9.5px] text-neutral-400 line-through">₹{v.original_price}</span>
-                              )}
-                            </div>
-                          </div>
-                          {isSelected && (
-                            <div className="w-4 h-4 rounded-full bg-emerald-600 text-white flex items-center justify-center flex-shrink-0">
-                              <Check size={10} className="stroke-[3]" />
-                            </div>
-                          )}
-                          {!isSelected && vPricing.hasDiscount && (
-                            <span className="text-[9px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200/60 px-1.5 py-0.5 rounded">
-                              {vPricing.percent}% OFF
-                            </span>
-                          )}
-                        </button>
-                      );
-                    })}
-                  </div>
+                  <PackPicker
+                    product={product}
+                    selectedId={selectedVariant?.id}
+                    onSelect={setSelectedVariant}
+                  />
                 </div>
               )}
 

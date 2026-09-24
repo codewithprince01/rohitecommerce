@@ -1,8 +1,9 @@
-import React from 'react';
-import { Plus, Minus, Heart, ImageOff } from 'lucide-react';
+import React, { useState } from 'react';
+import { Plus, Minus, Heart, ImageOff, ChevronDown, X } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import type { ProductWithVariants, ProductVariant } from '../lib/supabase';
 import { variantPricing } from '../lib/pricing';
+import PackPicker from './PackPicker';
 
 interface ZeptoProductCardProps {
   product: ProductWithVariants;
@@ -25,24 +26,40 @@ export default function ZeptoProductCard({
     isInWishlist,
   } = useApp();
 
+  const [packsOpen, setPacksOpen] = useState(false);
+
   // The cheapest pack is what the card advertises. A product with no packs has
   // no price to show and cannot be added to the cart — the admin has not
   // finished setting it up, and inventing a price would mislead the shopper.
-  const variant: ProductVariant | undefined = product.variants?.length
-    ? [...product.variants].sort((a, b) => a.price - b.price)[0]
-    : undefined;
+  const packs = product.variants?.length ? [...product.variants].sort((a, b) => a.price - b.price) : [];
+  const variant: ProductVariant | undefined = packs[0];
+  const hasChoice = packs.length > 1;
 
   const id = product.id;
   const { price, originalPrice, savings, percent: discountPercent } = variantPricing(variant);
-  const inStock = Boolean(variant && variant.stock > 0);
+  // In stock if *any* pack has stock — a card showing "out of stock" because
+  // only the cheapest pack ran out would hide packs we can still sell.
+  const inStock = packs.some((v) => v.stock > 0);
   const isFav = isInWishlist(id) || (Boolean(product.slug) && isInWishlist(product.slug));
 
   const cartItem = variant ? cart.find((c) => c.product.id === id && c.variant.id === variant.id) : undefined;
   const quantity = cartItem?.quantity ?? 0;
+  // Across every pack, so the badge matches what this product contributes to the cart.
+  const totalInCart = cart
+    .filter((c) => c.product.id === id)
+    .reduce((sum, c) => sum + c.quantity, 0);
 
+  /**
+   * One pack adds straight to the cart; several open the picker, so choosing
+   * between ₹5 / ₹10 / ₹20 does not mean opening the product page first.
+   */
   const handleAdd = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (variant) addToCart(product, variant);
+    if (hasChoice) {
+      setPacksOpen(true);
+      return;
+    }
+    if (variant && variant.stock > 0) addToCart(product, variant);
   };
 
   const handleIncrement = (e: React.MouseEvent) => {
@@ -114,7 +131,7 @@ export default function ZeptoProductCard({
             <>
               <div className="flex items-baseline gap-1">
                 <span className="bg-[#15803D] text-white text-[10.5px] font-black px-1.5 py-0.5 rounded-[4px] leading-tight">
-                  ₹{price}
+                  {hasChoice ? `from ₹${price}` : `₹${price}`}
                 </span>
                 {originalPrice > price && (
                   <span className="text-[9.5px] text-neutral-400 line-through font-medium leading-none">
@@ -139,7 +156,7 @@ export default function ZeptoProductCard({
           </h3>
 
           <p className="text-[9.5px] text-neutral-500 font-normal mt-0.5 leading-tight">
-            {variant?.quantity ?? '—'}
+            {hasChoice ? `${packs.length} pack sizes` : variant?.quantity ?? '—'}
           </p>
         </div>
       </div>
@@ -153,11 +170,26 @@ export default function ZeptoProductCard({
         </span>
 
         {variant && (
-          quantity === 0 ? (
+          hasChoice ? (
             <button
               type="button"
               onClick={handleAdd}
-              className="bg-white hover:bg-primary-600 text-primary-600 hover:text-white border-2 border-primary-500 font-black text-[10.5px] px-3 py-1 rounded-lg shadow-sm active:scale-95 transition-all leading-tight shrink-0"
+              disabled={!inStock && totalInCart === 0}
+              className={`font-black text-[10.5px] px-3 py-1 rounded-lg shadow-sm active:scale-95 transition-all leading-tight shrink-0 flex items-center gap-1 border-2 disabled:opacity-40 disabled:hover:bg-white disabled:hover:text-primary-600 ${
+                totalInCart > 0
+                  ? 'bg-primary-600 text-white border-primary-600'
+                  : 'bg-white hover:bg-primary-600 text-primary-600 hover:text-white border-primary-500'
+              }`}
+            >
+              {totalInCart > 0 ? `${totalInCart} ADDED` : 'ADD'}
+              <ChevronDown size={11} className="stroke-[3]" />
+            </button>
+          ) : quantity === 0 ? (
+            <button
+              type="button"
+              onClick={handleAdd}
+              disabled={!inStock}
+              className="bg-white hover:bg-primary-600 text-primary-600 hover:text-white border-2 border-primary-500 font-black text-[10.5px] px-3 py-1 rounded-lg shadow-sm active:scale-95 transition-all leading-tight shrink-0 disabled:opacity-40 disabled:hover:bg-white disabled:hover:text-primary-600"
             >
               ADD
             </button>
@@ -184,6 +216,51 @@ export default function ZeptoProductCard({
           )
         )}
       </div>
+
+      {/* Pack picker — several packs can be given a quantity in one go. */}
+      {packsOpen && (
+        <div
+          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4"
+          onClick={(e) => {
+            e.stopPropagation();
+            setPacksOpen(false);
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="bg-white w-full sm:max-w-sm rounded-t-3xl sm:rounded-3xl shadow-2xl border border-neutral-100 max-h-[80vh] flex flex-col"
+          >
+            <div className="flex items-start justify-between gap-3 p-4 border-b border-neutral-100">
+              <div className="min-w-0">
+                <h3 className="text-sm font-bold text-neutral-900 truncate">{product.name}</h3>
+                <p className="text-[11px] text-neutral-500 mt-0.5">Choose pack sizes — you can add more than one</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setPacksOpen(false)}
+                aria-label="Close"
+                className="w-8 h-8 rounded-full bg-neutral-100 hover:bg-neutral-200 flex items-center justify-center text-neutral-500 shrink-0"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="p-3 overflow-y-auto">
+              <PackPicker product={product} />
+            </div>
+
+            <div className="p-3 border-t border-neutral-100">
+              <button
+                type="button"
+                onClick={() => setPacksOpen(false)}
+                className="w-full py-2.5 rounded-xl bg-primary-600 hover:bg-primary-700 text-white text-xs font-bold active:scale-95 transition-all"
+              >
+                {totalInCart > 0 ? `Done · ${totalInCart} in cart` : 'Done'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

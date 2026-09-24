@@ -1,4 +1,4 @@
-import { api, apiList } from '../api';
+import { api, apiList, apiDownload, apiUpload, saveBlob } from '../api';
 import type { ListParams, Paginated } from '../types';
 
 /* ------------------------------- Types -------------------------------- */
@@ -176,6 +176,46 @@ export function bulkAdjustStock(input: {
  * Pages through the live inventory matching the current filters and returns a
  * CSV string — real data only, no client-side fabrication.
  */
+/* ------------------------- Sheet export / import -------------------------- */
+
+export type SheetFormat = 'xlsx' | 'csv';
+
+export interface SheetIssue {
+  row: number;
+  column: string;
+  message: string;
+}
+
+export interface SheetImportResult {
+  dryRun: boolean;
+  file: string;
+  rows: { total: number; updated: number; unchanged: number; failed: number };
+  counts: { stock: number; price: number; threshold: number; availability: number };
+  errors: SheetIssue[];
+  errorsTruncated: boolean;
+  unknownHeaders: string[];
+}
+
+/**
+ * Download the editable inventory sheet. Every row carries its SKU ID, which is
+ * what the importer matches on — so this file can be edited and sent back.
+ */
+export async function downloadInventorySheet(
+  format: SheetFormat,
+  filters: Record<string, string | number | boolean | undefined> = {}
+): Promise<void> {
+  const { blob, filename } = await apiDownload('/inventory/export', { format, ...filters });
+  saveBlob(blob, filename ?? `inventory-${new Date().toISOString().slice(0, 10)}.${format}`);
+}
+
+/** Apply an edited sheet. `dryRun` reports what would change without saving. */
+export function importInventorySheet(file: File, dryRun = false): Promise<SheetImportResult> {
+  const form = new FormData();
+  form.append('file', file);
+  form.append('dryRun', String(dryRun));
+  return apiUpload<SheetImportResult>('/inventory/import', form);
+}
+
 export async function exportInventoryCsv(params: ListParams): Promise<string> {
   const pageSize = 100;
   let page = 1;

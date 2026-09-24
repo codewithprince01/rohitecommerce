@@ -7,6 +7,8 @@ import { ok, paginated } from '../../utils/ApiResponse.js';
 import { ApiError } from '../../utils/ApiError.js';
 import { parseListParams, searchFilter, equalityFilters } from '../../utils/query.js';
 import { logActivity, notify } from '../../services/activity.service.js';
+import { collectRows, buildCsv, buildXlsx, applySheet } from './inventory.sheet.js';
+import { CONTENT_TYPES as SHEET_CONTENT_TYPES } from '../bulkUpload/bulkUpload.templates.js';
 
 // Default reorder point for SKUs that don't carry their own low_stock_threshold
 // (kept in sync with the products module's LOW_STOCK_THRESHOLD).
@@ -462,6 +464,72 @@ function resolveDelta(variant, body) {
  * Adjust a single SKU's stock and append to the movement ledger. Optionally
  * updates the SKU's reorder point in the same call.
  */
+/* ------------------------- Sheet export / import -------------------------- */
+
+/**
+ * Download every SKU as an editable sheet.
+ *
+ * Each row carries its SKU ID, which is what `importSheet` matches on — so the
+ * same file can be edited and uploaded back as many times as needed without
+ * ever producing a second copy of anything.
+ */
+export const exportSheet = asyncHandler(async (req, res) => {
+  const format = String(req.query.format || 'xlsx').toLowerCase();
+  if (!['csv', 'xlsx'].includes(format)) {
+    throw ApiError.badRequest(`Unknown format "${format}". Expected csv or xlsx.`);
+  }
+
+  const filter = equalityFilters(req.query, ['is_available']);
+
+  // Category and free-text narrow the products first, then their SKUs.
+  const search = String(req.query.search || '').trim();
+  const categoryId = req.query.category_id;
+  if (search || (categoryId && mongoose.isValidObjectId(categoryId))) {
+    const productFilter = {
+      ...searchFilter(search, ['name', 'slug']),
+      ...(categoryId && mongoose.isValidObjectId(categoryId)
+        ? { category_id: new mongoose.Types.ObjectId(categoryId) }
+        : {}),
+    };
+    const ids = await Product.find(productFilter).select('_id').lean();
+    filter.product_id = { $in: ids.map((p) => p._id) };
+  }
+
+  const rows = await collectRows(filter);
+  const buffer = format === 'csv' ? buildCsv(rows) : await buildXlsx(rows);
+  const filename = `inventory-${new Date().toISOString().slice(0, 10)}.${format}`;
+
+  res.setHeader('Content-Type', SHEET_CONTENT_TYPES[format]);
+  res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+  res.setHeader('Access-Control-Expose-Headers', 'Content-Disposition');
+  res.setHeader('Content-Length', buffer.length);
+  res.setHeader('Cache-Control', 'no-store');
+  return res.status(200).send(buffer);
+});
+
+/** Apply an edited inventory sheet. Updates only — never creates or deletes. */
+export const importSheet = asyncHandler(async (req, res) => {
+  if (!req.file || !req.file.buffer?.length) {
+    throw ApiError.badRequest('No file was uploaded. Choose the edited .xlsx or .csv sheet and try again.');
+  }
+
+  const dryRun = String(req.body.dryRun ?? 'false') === 'true';
+  const result = await applySheet(req.file.buffer, req.file.originalname, {
+    dryRun,
+    adminId: req.admin?._id ?? null,
+  });
+
+  if (!dryRun && result.rows.updated > 0) {
+    await logActivity(req, 'import_inventory', 'variant', null, {
+      file: result.file,
+      rows: result.rows,
+      counts: result.counts,
+    });
+  }
+
+  return ok(res, result);
+});
+
 export const adjustStock = asyncHandler(async (req, res) => {
   const variant = await ProductVariant.findById(req.params.id);
   if (!variant) throw ApiError.notFound('variant not found');
