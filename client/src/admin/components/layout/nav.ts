@@ -3,7 +3,6 @@ import {
   Package,
   FolderTree,
   Boxes,
-  UploadCloud,
   ShoppingCart,
   Users,
   Layers,
@@ -34,7 +33,6 @@ export const NAV_ITEMS: NavItem[] = [
   { label: 'Products', path: '/products', icon: Package, permission: 'products.view', group: 'Catalog' },
   { label: 'Categories', path: '/categories', icon: FolderTree, permission: 'categories.view', group: 'Catalog' },
   { label: 'Inventory', path: '/inventory', icon: Boxes, permission: 'inventory.view', group: 'Catalog' },
-  { label: 'Bulk Upload', path: '/bulk-upload', icon: UploadCloud, permission: 'categories.manage', group: 'Catalog' },
 
   { label: 'Orders', path: '/orders', icon: ShoppingCart, permission: 'orders.view', group: 'Sales' },
   { label: 'Customers', path: '/customers', icon: Users, permission: 'customers.view', group: 'Sales' },

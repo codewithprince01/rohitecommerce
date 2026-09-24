@@ -52,7 +52,7 @@ export default function CategoriesPage() {
   }
 
   return (
-    <div className="pb-12 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
+    <div className="pb-12 max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 pt-6">
       <div className="space-y-10">
         {categories.map((category) => {
           const children = subcategories.filter((s) => s.category_id === category.id);
@@ -68,15 +68,18 @@ export default function CategoriesPage() {
                 {category.name}
               </h2>
 
-              <div className="flex flex-wrap gap-3 sm:gap-4 md:gap-5 items-start">
+              {/* Two per row on a phone, each tile filling its half — fixed-width
+                  tiles left a dead strip down the right when a third would not
+                  fit. From `sm` up the old wrap-as-many-as-fit layout returns. */}
+              <div className="grid grid-cols-2 gap-3 sm:flex sm:flex-wrap sm:gap-4 md:gap-5 sm:items-start">
                 {tiles.map((tile) => (
                   <button
                     key={tile.id}
                     type="button"
                     onClick={() => setCategory(tile.slug)}
-                    className="w-[106px] sm:w-[120px] md:w-[130px] lg:w-[136px] flex flex-col items-center group text-center focus:outline-none cursor-pointer flex-shrink-0"
+                    className="w-full sm:w-[120px] md:w-[130px] lg:w-[136px] flex flex-col items-center group text-center focus:outline-none cursor-pointer sm:flex-shrink-0"
                   >
-                    <div className="w-full aspect-square h-[106px] sm:h-[120px] md:h-[130px] lg:h-[136px] rounded-2xl overflow-hidden shadow-sm group-hover:shadow-md group-hover:scale-105 group-active:scale-95 transition-all duration-200 relative bg-neutral-100">
+                    <div className="w-full aspect-square rounded-2xl overflow-hidden shadow-sm group-hover:shadow-md group-hover:scale-105 group-active:scale-95 transition-all duration-200 relative bg-neutral-100">
                       {tile.image ? (
                         <img
                           src={tile.image}

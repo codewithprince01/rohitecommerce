@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import {
-  Plus, Pencil, Trash2, ImageOff, RefreshCw, Layers, FolderTree, Tag, Package, UploadCloud,
+  Plus, Pencil, Trash2, ImageOff, RefreshCw, Layers, FolderTree, Tag, Package, FileSpreadsheet,
   AlertTriangle, TrendingUp,
 } from 'lucide-react';
 import PageHeader from '../../components/ui/PageHeader';
@@ -19,15 +18,16 @@ import { useConfirm } from '../../hooks/useConfirm';
 import { useAdminAuth } from '../../context/AdminAuthContext';
 import { useAsync } from '../../hooks/useAsync';
 import * as catalog from '../../lib/services/catalog.service';
-import TemplateMenu from '../../components/bulk/TemplateMenu';
+import CatalogSheetModal from '../../components/bulk/CatalogSheetModal';
 import type { Category, Subcategory, Brand, CatalogStats } from '../../lib/services/catalog.service';
 
 type Tab = 'categories' | 'subcategories' | 'brands';
 
 export default function CategoriesPage() {
   const { can } = useAdminAuth();
-  const navigate = useNavigate();
+  const toast = useToast();
   const [tab, setTab] = useState<Tab>('categories');
+  const [sheetOpen, setSheetOpen] = useState(false);
   const canManage = can('categories.manage');
 
   const { data: stats, loading: statsLoading, reload: reloadStats } = useAsync(() => catalog.getCatalogStats(), []);
@@ -49,12 +49,9 @@ export default function CategoriesPage() {
               Refresh
             </Button>
             {canManage && (
-              <>
-                <TemplateMenu type="catalog" />
-                <Button icon={<UploadCloud size={16} />} onClick={() => navigate('/bulk-upload?type=catalog')}>
-                  Bulk Upload
-                </Button>
-              </>
+              <Button icon={<FileSpreadsheet size={16} />} onClick={() => setSheetOpen(true)}>
+                Import / Export
+              </Button>
             )}
           </>
         }
@@ -123,6 +120,15 @@ export default function CategoriesPage() {
       {tab === 'categories' && <CategoriesTab canManage={canManage} onMutate={reloadStats} />}
       {tab === 'subcategories' && <SubcategoriesTab canManage={canManage} onMutate={reloadStats} />}
       {tab === 'brands' && <BrandsTab canManage={canManage} onMutate={reloadStats} />}
+
+      <CatalogSheetModal
+        open={sheetOpen}
+        onClose={() => setSheetOpen(false)}
+        type="catalog"
+        onDone={reloadStats}
+        onError={(m) => toast.error(m)}
+        onSuccess={(m) => toast.success(m)}
+      />
     </div>
   );
 }

@@ -190,7 +190,14 @@ export interface SheetImportResult {
   dryRun: boolean;
   file: string;
   rows: { total: number; updated: number; unchanged: number; failed: number };
-  counts: { stock: number; price: number; threshold: number; availability: number };
+  counts: {
+    stock: number;
+    price: number;
+    threshold: number;
+    availability: number;
+    /** Products whose name / description / image / tags / active state changed. */
+    products: number;
+  };
   errors: SheetIssue[];
   errorsTruncated: boolean;
   unknownHeaders: string[];

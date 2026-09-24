@@ -15,7 +15,7 @@ import BulkActionBar from '../../components/ui/BulkActionBar';
 import Modal from '../../components/ui/Modal';
 import Drawer from '../../components/ui/Drawer';
 import FormField, { Input, Select } from '../../components/ui/FormField';
-import SheetSyncModal from './SheetSyncModal';
+import CatalogSheetModal from '../../components/bulk/CatalogSheetModal';
 import { EmptyState } from '../../components/ui/States';
 import { useTable } from '../../hooks/useTable';
 import { useToast } from '../../hooks/useToast';
@@ -364,11 +364,12 @@ export default function InventoryPage() {
         />
       )}
 
-      <SheetSyncModal
+      <CatalogSheetModal
         open={sheetOpen}
         onClose={() => setSheetOpen(false)}
+        type="products"
         filters={{ search: table.search || undefined, ...table.filters }}
-        onImported={refreshAll}
+        onDone={refreshAll}
         onError={(m) => toast.error(m)}
         onSuccess={(m) => toast.success(m)}
       />

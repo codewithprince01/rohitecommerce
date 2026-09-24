@@ -1,8 +1,7 @@
 import React, { useState, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
 import {
-  Plus, Pencil, Trash2, Eye, EyeOff, ImageOff, Download, UploadCloud,
-  Package, CheckCircle2, AlertTriangle, XCircle, Wallet,
+  Plus, Pencil, Trash2, Eye, EyeOff, ImageOff,
+  Package, CheckCircle2, AlertTriangle, XCircle, Wallet, FileSpreadsheet,
 } from 'lucide-react';
 import PageHeader from '../../components/ui/PageHeader';
 import SearchInput from '../../components/ui/SearchInput';
@@ -23,32 +22,18 @@ import {
   deleteProduct,
   bulkSetAvailability,
   bulkDeleteProducts,
-  exportProductsCsv,
   type ProductListRow,
 } from '../../lib/services/products.service';
 import { allCategories } from '../../lib/services/catalog.service';
 import { formatCurrency, formatCompactCurrency } from '../../lib/format';
 import ProductForm from './ProductForm';
-import TemplateMenu from '../../components/bulk/TemplateMenu';
+import CatalogSheetModal from '../../components/bulk/CatalogSheetModal';
 
 const LOW_STOCK = 10;
-
-function downloadCsv(filename: string, csv: string) {
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  URL.revokeObjectURL(url);
-}
 
 export default function ProductsPage() {
   const toast = useToast();
   const confirm = useConfirm();
-  const navigate = useNavigate();
   const { can } = useAdminAuth();
   const table = useTable<ProductListRow>(listProducts, { initialSortBy: 'created_at', initialSortDir: 'desc' });
   const { data: categories } = useAsync(() => allCategories(), []);
@@ -56,7 +41,7 @@ export default function ProductsPage() {
 
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<ProductListRow | null>(null);
-  const [exporting, setExporting] = useState(false);
+  const [sheetOpen, setSheetOpen] = useState(false);
 
   // Refresh both the table and the KPI cards after any mutation.
   const refreshAll = useCallback(() => {
@@ -125,24 +110,6 @@ export default function ProductsPage() {
       refreshAll();
     } catch (err: any) {
       toast.error(err?.message ?? 'Bulk action failed');
-    }
-  };
-
-  const handleExport = async () => {
-    setExporting(true);
-    try {
-      const csv = await exportProductsCsv({
-        search: table.search,
-        sortBy: table.sortBy,
-        sortDir: table.sortDir,
-        filters: table.filters,
-      });
-      downloadCsv(`products-${new Date().toISOString().slice(0, 10)}.csv`, csv);
-      toast.success('Export ready');
-    } catch (err: any) {
-      toast.error(err?.message ?? 'Export failed');
-    } finally {
-      setExporting(false);
     }
   };
 
@@ -262,21 +229,11 @@ export default function ProductsPage() {
         subtitle="Manage your catalog, pricing, pack sizes and inventory."
         actions={
           <div className="flex items-center gap-2">
-            <Button variant="outline" icon={<Download size={16} />} onClick={handleExport} loading={exporting}>
-              Export
+            {/* One door for every sheet job — five separate buttons here made
+                it too easy to feed the wrong file to the wrong importer. */}
+            <Button variant="outline" icon={<FileSpreadsheet size={16} />} onClick={() => setSheetOpen(true)}>
+              Import / Export
             </Button>
-            {can('categories.manage') && (
-              <>
-                <TemplateMenu type="products" />
-                <Button
-                  variant="outline"
-                  icon={<UploadCloud size={16} />}
-                  onClick={() => navigate('/bulk-upload?type=products')}
-                >
-                  Bulk Upload
-                </Button>
-              </>
-            )}
             {can('products.create') && (
               <Button icon={<Plus size={16} />} onClick={openCreate}>
                 New Product
@@ -398,6 +355,16 @@ export default function ProductsPage() {
           </Button>
         )}
       </BulkActionBar>
+
+      <CatalogSheetModal
+        open={sheetOpen}
+        onClose={() => setSheetOpen(false)}
+        type="products"
+        filters={{ search: table.search || undefined }}
+        onDone={refreshAll}
+        onError={(m) => toast.error(m)}
+        onSuccess={(m) => toast.success(m)}
+      />
 
       <ProductForm open={formOpen} product={editing} onClose={() => setFormOpen(false)} onSaved={refreshAll} />
     </div>

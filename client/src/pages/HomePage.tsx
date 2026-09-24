@@ -106,7 +106,7 @@ export default function HomePage() {
               <ChevronRight size={14} className="stroke-[2.5]" />
             </button>
           </div>
-          <div className="flex gap-2.5 sm:gap-3 overflow-x-auto scrollbar-hide py-1 px-1 scroll-smooth">
+          <div className="flex gap-2 sm:gap-2.5 overflow-x-auto scrollbar-hide py-1 px-0.5 scroll-smooth">
             {featuredProducts.slice(0, 10).map((p) => (
               <ZeptoProductCard key={p.id} product={p} />
             ))}

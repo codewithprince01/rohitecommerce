@@ -11,7 +11,6 @@ import DashboardPage from './pages/DashboardPage';
 import ProductsPage from './pages/products/ProductsPage';
 import CategoriesPage from './pages/categories/CategoriesPage';
 import InventoryPage from './pages/inventory/InventoryPage';
-import BulkUploadPage from './pages/bulkUpload/BulkUploadPage';
 import OrdersPage from './pages/orders/OrdersPage';
 import OrderDetailPage from './pages/orders/OrderDetailPage';
 import CustomersPage from './pages/customers/CustomersPage';
@@ -50,7 +49,6 @@ export default function AdminApp() {
                 <Route path="/products" element={<Protected permission="products.view"><ProductsPage /></Protected>} />
                 <Route path="/categories" element={<Protected permission="categories.view"><CategoriesPage /></Protected>} />
                 <Route path="/inventory" element={<Protected permission="inventory.view"><InventoryPage /></Protected>} />
-                <Route path="/bulk-upload" element={<Protected permission="categories.manage"><BulkUploadPage /></Protected>} />
                 <Route path="/orders" element={<Protected permission="orders.view"><OrdersPage /></Protected>} />
                 <Route path="/orders/:id" element={<Protected permission="orders.view"><OrderDetailPage /></Protected>} />
                 <Route path="/customers" element={<Protected permission="customers.view"><CustomersPage /></Protected>} />

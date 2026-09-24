@@ -17,11 +17,14 @@ export default function ZeptoCategoryGrid({ categories }: ZeptoCategoryGridProps
   const row1 = categories.slice(0, 10);
   const row2 = categories.slice(10, 20);
 
-  const renderCategoryItem = (cat: Category) => (
+function CategoryTile({ cat, onClick }: { cat: Category; onClick: () => void }) {
+  const [imgErr, setImgErr] = React.useState(false);
+  const showImg = Boolean(cat.image) && !imgErr;
+
+  return (
     <button
-      key={cat.id}
       type="button"
-      onClick={() => setCategory(cat.slug)}
+      onClick={onClick}
       className="flex flex-col items-center group text-center focus:outline-none flex-shrink-0 w-[calc((100%-24px)/3)] min-w-[calc((100%-24px)/3)] max-w-[calc((100%-24px)/3)] sm:w-[112px] sm:min-w-[112px] sm:max-w-none lg:w-full lg:min-w-0 lg:max-w-[108px] snap-start"
     >
       <div
@@ -29,16 +32,17 @@ export default function ZeptoCategoryGrid({ categories }: ZeptoCategoryGridProps
           cat.bg_color || 'bg-neutral-100'
         }`}
       >
-        {cat.image ? (
+        {showImg ? (
           <img
-            src={cat.image}
+            src={cat.image!}
             alt={cat.name}
+            onError={() => setImgErr(true)}
             className="w-full h-full object-cover rounded-2xl aspect-square transition-transform group-hover:scale-105 duration-200"
             loading="lazy"
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center">
-            <ImageOff size={18} className="text-neutral-300" />
+          <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-emerald-100/70 to-emerald-50 text-emerald-800 font-black text-xl select-none">
+            <span>{cat.name.slice(0, 1).toUpperCase()}</span>
           </div>
         )}
       </div>
@@ -48,6 +52,7 @@ export default function ZeptoCategoryGrid({ categories }: ZeptoCategoryGridProps
       </span>
     </button>
   );
+}
 
   return (
     <div className="mb-6 lg:mb-8">
@@ -67,17 +72,23 @@ export default function ZeptoCategoryGrid({ categories }: ZeptoCategoryGridProps
 
       {/* Desktop: 10-column grid */}
       <div className="hidden lg:grid grid-cols-10 gap-x-2.5 gap-y-4 items-start justify-items-center">
-        {categories.slice(0, 20).map(renderCategoryItem)}
+        {categories.slice(0, 20).map((cat) => (
+          <CategoryTile key={cat.id} cat={cat} onClick={() => setCategory(cat.slug)} />
+        ))}
       </div>
 
       {/* Mobile/tablet: two scrollable rows */}
       <div className="lg:hidden flex flex-col gap-3">
         <div className="flex gap-3 overflow-x-auto scrollbar-hide py-1 px-0.5 snap-x snap-mandatory scroll-smooth">
-          {row1.map(renderCategoryItem)}
+          {row1.map((cat) => (
+            <CategoryTile key={cat.id} cat={cat} onClick={() => setCategory(cat.slug)} />
+          ))}
         </div>
         {row2.length > 0 && (
           <div className="flex gap-3 overflow-x-auto scrollbar-hide py-1 px-0.5 snap-x snap-mandatory scroll-smooth">
-            {row2.map(renderCategoryItem)}
+            {row2.map((cat) => (
+              <CategoryTile key={cat.id} cat={cat} onClick={() => setCategory(cat.slug)} />
+            ))}
           </div>
         )}
       </div>

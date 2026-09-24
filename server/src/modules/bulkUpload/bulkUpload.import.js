@@ -182,7 +182,9 @@ export function mapRows(type, parsed) {
     throw ApiError.badRequest(
       `Your file is missing required column${missingRequired.length > 1 ? 's' : ''}: ` +
         `${missingRequired.map((c) => `"${c.header}"`).join(', ')}. ` +
-        'Download the template again and copy your data into it.',
+        'This screen adds new records, so it needs the full template — download it again and copy your data in. ' +
+        'To change products you already have, use "Edit by sheet" on the Products or Inventory page instead: ' +
+        'that sheet exports with ids, so you can edit it and upload it straight back.',
       missingRequired.map((c) => ({ field: c.key, message: `Column "${c.header}" is required` }))
     );
   }

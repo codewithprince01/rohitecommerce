@@ -43,14 +43,14 @@ export default function PackPicker({ product, selectedId, onSelect, className = 
           <div
             key={v.id}
             onClick={() => onSelect?.(v)}
-            className={`flex items-center justify-between gap-2 rounded-xl border px-2.5 py-2 transition-colors ${
+            className={`flex items-center justify-between gap-2.5 rounded-xl border px-3 py-2.5 transition-colors ${
               onSelect ? 'cursor-pointer' : ''
             } ${
               isSelected
-                ? 'border-primary-500 bg-primary-50/60'
+                ? 'border-[#0c831f] bg-emerald-50/60 shadow-xs'
                 : qty > 0
-                ? 'border-primary-200 bg-primary-50/30'
-                : 'border-neutral-200 bg-white'
+                ? 'border-emerald-400 bg-emerald-50/30'
+                : 'border-neutral-200 hover:border-neutral-300 bg-white'
             } ${!inStock ? 'opacity-60' : ''}`}
           >
             <div className="min-w-0">
@@ -61,7 +61,7 @@ export default function PackPicker({ product, selectedId, onSelect, className = 
                   <span className="text-[10px] text-neutral-400 line-through">₹{originalPrice}</span>
                 )}
                 {percent > 0 && (
-                  <span className="text-[10px] font-bold text-[#15803D]">{percent}% off</span>
+                  <span className="text-[10px] font-bold text-[#0c831f]">{percent}% off</span>
                 )}
               </div>
               {!inStock && <p className="text-[10px] font-semibold text-rose-500 mt-0.5">Out of stock</p>}
@@ -75,12 +75,12 @@ export default function PackPicker({ product, selectedId, onSelect, className = 
                     e.stopPropagation();
                     addToCart(product, v);
                   }}
-                  className="shrink-0 bg-white hover:bg-primary-600 text-primary-600 hover:text-white border-2 border-primary-500 font-black text-[11px] px-3 py-1 rounded-lg active:scale-95 transition-all"
+                  className="shrink-0 bg-white hover:bg-[#0c831f] text-[#0c831f] hover:text-white border-2 border-[#0c831f] font-black text-[11px] px-3.5 py-1 rounded-lg active:scale-95 transition-all"
                 >
                   ADD
                 </button>
               ) : (
-                <div className="shrink-0 bg-primary-600 text-white rounded-lg flex items-center gap-2 px-1.5 py-1">
+                <div className="shrink-0 bg-[#0c831f] text-white rounded-lg flex items-center gap-2 px-2 py-1 shadow-xs">
                   <button
                     type="button"
                     aria-label={`Remove one ${v.quantity}`}

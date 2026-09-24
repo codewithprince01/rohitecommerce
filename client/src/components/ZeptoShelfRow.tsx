@@ -63,7 +63,7 @@ export default function ZeptoShelfRow({
       <div className="relative group/shelf">
         <div
           ref={scrollRef}
-          className="flex gap-2.5 sm:gap-3 overflow-x-auto scrollbar-hide py-1 px-1 scroll-smooth"
+          className="flex gap-2 sm:gap-2.5 overflow-x-auto scrollbar-hide py-1 px-0.5 scroll-smooth"
         >
           {productObjects.map((prod) => (
             <ZeptoProductCard key={prod.id} product={prod} />
